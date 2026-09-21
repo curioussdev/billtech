@@ -8,13 +8,13 @@ import { PROJECT_STATUSES, type ProjectStatus } from '@/types/project'
 
 export function TrafficCard({ data, delay }: { data: TrafficKpi; delay?: number }) {
   return (
-    <KpiCard title="Acessos à landing (30 dias)" icon={<Globe2 className="size-4" />} delay={delay}>
+    <KpiCard title="Visitantes da landing (30 dias)" icon={<Globe2 className="size-4" />} delay={delay}>
       <div className="flex items-end justify-between gap-2">
         <p className="text-3xl font-black tabular-nums">{formatInt(data.visits)}</p>
         <ChangeBadge value={data.changePct} />
       </div>
       <Sparkline data={data.series} label={`Evolução diária de visitas nos últimos 30 dias, total ${formatInt(data.visits)}`} />
-      <p className="text-xs text-muted-foreground">Período anterior: {formatInt(data.previousVisits)}</p>
+      <p className="text-xs text-muted-foreground">Sessões únicas · período anterior: {formatInt(data.previousVisits)}</p>
     </KpiCard>
   )
 }

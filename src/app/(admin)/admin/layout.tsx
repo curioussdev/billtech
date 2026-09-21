@@ -1,4 +1,5 @@
 import type { Metadata } from 'next'
+import { ExcludeFromAnalytics } from '@/components/analytics-tracker'
 import { AppSidebar } from '@/components/admin/layout/AppSidebar'
 import { SidebarInset, SidebarProvider, SidebarTrigger } from '@/components/ui/sidebar'
 import { requireAdmin } from '@/lib/auth'
@@ -14,6 +15,7 @@ export default async function AdminLayout({ children }: { children: React.ReactN
 
   return (
     <SidebarProvider>
+      <ExcludeFromAnalytics />
       <AppSidebar email={profile.email} unreadRequests={unreadRequests ?? 0} />
       <SidebarInset>
         <header className="sticky top-0 z-20 flex h-14 items-center gap-2 border-b border-border bg-background/90 px-4 backdrop-blur">

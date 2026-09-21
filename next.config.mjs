@@ -1,4 +1,10 @@
-const supabaseHost = process.env.NEXT_PUBLIC_SUPABASE_URL ? new URL(process.env.NEXT_PUBLIC_SUPABASE_URL).hostname : null
+const supabaseHost = (() => {
+  try {
+    return process.env.NEXT_PUBLIC_SUPABASE_URL?.trim() ? new URL(process.env.NEXT_PUBLIC_SUPABASE_URL.trim()).hostname : null
+  } catch {
+    return null
+  }
+})()
 
 /** @type {import('next').NextConfig} */
 const nextConfig = {

@@ -16,8 +16,26 @@ export interface TrafficKpi {
   series: TimeSeriesPoint[]
 }
 
+export interface OnlinePage {
+  path: string
+  online: number
+}
+
+export interface PageStat {
+  path: string
+  views: number
+  visitors: number
+}
+
+export interface SourceStat {
+  source: string
+  visitors: number
+}
+
 export interface RealtimeUsers {
   online: number
+  /** Páginas onde os utilizadores estão agora */
+  pages: OnlinePage[]
   peakToday: number
   /** ISO 8601 */
   peakAt: string
@@ -58,6 +76,10 @@ export interface SectorDeliveryPoint {
 export interface DashboardOverview {
   /** Data de referência dos dados (ISO 8601) */
   asOf: string
+  /** true = tráfego e utilizadores online vêm do analytics real; false = dados de demonstração */
+  trafficIsLive: boolean
+  topPages: PageStat[]
+  sources: SourceStat[]
   traffic: TrafficKpi
   realtime: RealtimeUsers
   revenue: RevenueKpi

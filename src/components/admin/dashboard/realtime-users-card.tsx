@@ -24,8 +24,24 @@ export function RealtimeUsersCard({ initial, delay }: { initial: RealtimeUsers; 
         </p>
       </div>
       <p className="text-xs text-muted-foreground">
-        Pico de hoje: <strong className="font-semibold text-foreground">{data.peakToday}</strong> às {time(data.peakAt)}
+        {data.peakToday > 0 ? (
+          <>
+            Pico de hoje: <strong className="font-semibold text-foreground">{data.peakToday}</strong> às {time(data.peakAt)}
+          </>
+        ) : (
+          'Ainda sem visitas hoje.'
+        )}
       </p>
+      {data.pages.length > 0 && (
+        <ul aria-label="Páginas a ser vistas agora" className="grid gap-1 border-t border-border pt-2 text-xs">
+          {data.pages.slice(0, 4).map((p) => (
+            <li key={p.path} className="flex justify-between gap-2">
+              <span className="truncate text-muted-foreground">{p.path}</span>
+              <strong className="tabular-nums">{p.online}</strong>
+            </li>
+          ))}
+        </ul>
+      )}
       <p className="text-xs text-muted-foreground">{error ? 'Sem ligação — a mostrar o último valor.' : `Atualiza a cada 15 s · ${time(data.updatedAt)}`}</p>
     </KpiCard>
   )
