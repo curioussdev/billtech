@@ -24,11 +24,12 @@ export const AUDIT_ACTIONS = [
   'UPDATE_CLIENT_PROJECT',
   'DELETE_CLIENT_PROJECT',
   'SEND_BROADCAST',
+  'EXPORT_REVENUE',
 ] as const
 export type AuditAction = (typeof AUDIT_ACTIONS)[number]
 
 /** Módulos/recursos afetados (campo target_resource). */
-export const AUDIT_RESOURCES = ['sessao', 'seguranca', 'conteudo_landing', 'projetos_cases', 'media', 'definicoes', 'permissoes_cliente', 'pedidos', 'projetos_cliente', 'comunicacoes'] as const
+export const AUDIT_RESOURCES = ['sessao', 'seguranca', 'conteudo_landing', 'projetos_cases', 'media', 'definicoes', 'permissoes_cliente', 'pedidos', 'projetos_cliente', 'comunicacoes', 'negocio'] as const
 export type AuditResource = (typeof AUDIT_RESOURCES)[number]
 
 export type AuditEntry = {

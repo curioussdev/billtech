@@ -1,8 +1,10 @@
 import { MONTHLY_REVENUE_TARGET, mockDailyVisits, mockRealtime } from '@/data/mock/dashboard'
+import { mockLeads, mockMeetings } from '@/data/mock/leads'
 import { MOCK_NOW, mockProjects } from '@/data/mock/projects'
 import { isSupabaseConfigured } from '@/lib/supabase/config'
 import { createAdminClient } from '@/lib/supabase/server'
 import type { DashboardOverview, MonthlyRevenuePoint, OnlinePage, PageStat, RealtimeUsers, SourceStat, TimeSeriesPoint } from '@/types/analytics'
+import type { Lead, Meeting } from '@/types/lead'
 import { PROJECT_STATUSES, SECTORS, type ClientProject, type ProjectStatus } from '@/types/project'
 
 /**
@@ -62,6 +64,17 @@ async function loadLiveRealtime(): Promise<RealtimeUsers | null> {
 export async function listProjects(): Promise<ClientProject[]> {
   return mockProjects
 }
+
+export async function listLeads(): Promise<Lead[]> {
+  return mockLeads
+}
+
+export async function listMeetings(): Promise<Meeting[]> {
+  return mockMeetings
+}
+
+/** Data "de hoje" dos dados de negócio (fixa nos mocks; `new Date()` quando vierem da base de dados). */
+export const businessNow = () => new Date(MOCK_NOW)
 
 function monthlyRevenue(projects: ClientProject[], now: Date, months: number): MonthlyRevenuePoint[] {
   return Array.from({ length: months }, (_, i) => {

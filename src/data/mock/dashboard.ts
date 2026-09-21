@@ -19,3 +19,6 @@ export const mockRealtime = {
   peakToday: 31,
   peakAt: '2026-09-21T11:42:00.000Z',
 }
+
+/** Investimento comercial dos últimos 90 dias (anúncios, ferramentas, deslocações) para estimar o CAC. Fictício. */
+export const ACQUISITION_SPEND_90D = 2400

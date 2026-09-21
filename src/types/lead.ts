@@ -19,4 +19,21 @@ export interface Lead {
   stageEnteredAt: string
   createdAt: string
   owner: string
+  /** Contactos de follow-up já feitos */
+  followUps: number
+  /** Horas até à primeira resposta ao lead (null = ainda sem resposta) */
+  firstResponseHours: number | null
+}
+
+export const MEETING_KINDS = ['reuniao', 'demo', 'follow-up'] as const
+export type MeetingKind = (typeof MEETING_KINDS)[number]
+
+export interface Meeting {
+  id: string
+  leadId: string
+  title: string
+  /** ISO 8601 */
+  start: string
+  durationMin: number
+  kind: MeetingKind
 }
