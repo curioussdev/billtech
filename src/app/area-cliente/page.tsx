@@ -1,104 +1,153 @@
 import type { Metadata } from 'next'
 import Link from 'next/link'
-import { ArrowLeft, ArrowUpRight, LayoutDashboard, LogOut } from 'lucide-react'
-import { logout } from '@/actions/auth'
-import { ClientMessageForm } from '@/components/auth/client-message-form'
-import { Badge } from '@/components/ui/badge'
+import { ArrowRight, FolderKanban, Inbox, MessageCircle, Sparkles, Wrench, Bug, Calculator, LifeBuoy } from 'lucide-react'
+import { RequestStatusBadge, UnreadDot } from '@/components/portal/badges'
+import { ProjectCard } from '@/components/portal/project-widgets'
 import { Button } from '@/components/ui/button'
 import { requireUser } from '@/lib/auth'
 import { getSiteContent } from '@/lib/content/get'
-import { getIcon } from '@/lib/icons'
-import { createClient } from '@/lib/supabase/server'
+import { formatDate, OPEN_STATUSES, requestTypeLabels } from '@/lib/portal/labels'
+import { getProjects, getRequests } from '@/lib/portal/queries'
 
-export const metadata: Metadata = { title: 'Área de cliente', robots: { index: false } }
+export const metadata: Metadata = { title: 'Visão geral' }
 
-export default async function ClientAreaPage() {
+const quickActions = [
+  { type: 'alteracao', title: 'Pedir uma alteração', text: 'Mudar ou melhorar algo que já existe.', icon: Wrench },
+  { type: 'implementacao', title: 'Nova funcionalidade', text: 'Uma integração, automação ou módulo novo.', icon: Sparkles },
+  { type: 'suporte', title: 'Reportar um problema', text: 'Algo não funciona como esperado.', icon: Bug },
+  { type: 'orcamento', title: 'Pedir orçamento', text: 'Custo e prazo de um novo trabalho.', icon: Calculator },
+] as const
+
+export default async function PortalHomePage() {
   const profile = await requireUser()
-  const supabase = await createClient()
+  const [projects, requests, { general }] = await Promise.all([getProjects(), getRequests(), getSiteContent()])
 
-  const [{ solutions }, { data: assigned }] = await Promise.all([
-    getSiteContent(),
-    supabase.from('client_solutions').select('solution_id').eq('user_id', profile.id),
-  ])
-  const assignedIds = new Set((assigned ?? []).map((row) => row.solution_id as string))
-  const mySolutions = solutions.items.filter((s) => assignedIds.has(s.id))
+  const activeProjects = projects.filter((p) => p.status !== 'entregue' && p.status !== 'manutencao')
+  const openRequests = requests.filter((r) => OPEN_STATUSES.includes(r.status))
+  const unread = requests.filter((r) => r.client_unread)
+  const firstName = (profile.full_name || profile.email).split(/[\s@]/)[0]
 
   return (
-    <main className="mx-auto max-w-5xl px-5 py-12 lg:px-8">
-      <div className="flex flex-wrap items-center justify-between gap-4">
-        <Link href="/" className="inline-flex items-center gap-2 rounded-md text-sm text-muted-foreground hover:text-foreground">
-          <ArrowLeft className="size-4" aria-hidden /> Voltar ao site
-        </Link>
-        <div className="flex items-center gap-2">
-          {profile.role === 'admin' && (
-            <Button render={<Link href="/admin" />} nativeButton={false} variant="outline" size="sm">
-              <LayoutDashboard aria-hidden /> Dashboard
-            </Button>
-          )}
-          <form action={logout}>
-            <Button type="submit" variant="outline" size="sm">
-              <LogOut aria-hidden /> Sair
-            </Button>
-          </form>
+    <div className="grid gap-10">
+      <header className="flex flex-wrap items-end justify-between gap-4">
+        <div>
+          <h1 className="text-3xl font-black tracking-tight sm:text-4xl">Olá, {firstName}</h1>
+          <p className="mt-2 max-w-xl text-muted-foreground">
+            {profile.company ? `${profile.company} · ` : ''}Aqui acompanha os seus projetos e fala diretamente com a nossa equipa. Sem formalidades: se precisar de algo, peça.
+          </p>
         </div>
-      </div>
-
-      <header className="mt-10">
-        <h1 className="text-4xl font-black tracking-tight">Olá, {profile.full_name || profile.email}</h1>
-        <p className="mt-2 text-muted-foreground">
-          {profile.company ? `${profile.company} · ` : ''}
-          {profile.email}
-        </p>
+        <Button render={<Link href="/area-cliente/pedidos/novo" />} nativeButton={false} size="lg" className="h-11 rounded-full px-6">
+          Fazer um pedido <ArrowRight data-icon="inline-end" aria-hidden />
+        </Button>
       </header>
 
-      <section aria-labelledby="solucoes" className="mt-12">
-        <h2 id="solucoes" className="text-2xl font-bold">
-          As minhas soluções
-        </h2>
-        {mySolutions.length === 0 ? (
-          <p className="mt-4 rounded-2xl border border-dashed border-border p-6 text-muted-foreground">
-            Ainda não tem soluções associadas à sua conta. A equipa BillTech irá disponibilizá-las aqui assim que estiverem prontas — pode também pedir uma abaixo.
-          </p>
-        ) : (
-          <ul className="mt-6 grid gap-5 sm:grid-cols-2">
-            {mySolutions.map((solution) => {
-              const Icon = getIcon(solution.icon)
-              const isExternal = /^https?:/i.test(solution.url)
-              return (
-                <li key={solution.id} className="flex flex-col rounded-3xl border border-border bg-card p-6">
-                  <div className="flex items-start justify-between gap-3">
-                    <span className="flex size-11 items-center justify-center rounded-2xl bg-primary/10 text-primary">
-                      <Icon aria-hidden />
-                    </span>
-                    <Badge variant={solution.status === 'ativo' ? 'default' : 'outline'} className="h-auto px-2.5 py-1">
-                      {solution.status === 'ativo' ? 'Ativo' : 'Em breve'}
-                    </Badge>
-                  </div>
-                  <h3 className="mt-4 text-xl font-bold">{solution.title}</h3>
-                  <p className="mt-2 flex-1 text-sm leading-6 text-muted-foreground">{solution.description}</p>
-                  {solution.url && solution.status === 'ativo' && (
-                    <Button
-                      render={<Link href={solution.url} {...(isExternal ? { target: '_blank', rel: 'noopener noreferrer' } : {})} />}
-                      nativeButton={false}
-                      className="mt-5 w-fit rounded-full px-5"
-                    >
-                      Abrir <ArrowUpRight data-icon="inline-end" aria-hidden />
-                    </Button>
-                  )}
-                </li>
-              )
-            })}
-          </ul>
-        )}
+      <section aria-label="Resumo" className="grid gap-4 sm:grid-cols-3">
+        {[
+          { label: 'Projetos em curso', value: activeProjects.length, href: '/area-cliente/projetos', icon: FolderKanban },
+          { label: 'Pedidos em aberto', value: openRequests.length, href: '/area-cliente/pedidos', icon: Inbox },
+          { label: 'Mensagens por ler', value: unread.length, href: '/area-cliente/pedidos', icon: MessageCircle, highlight: unread.length > 0 },
+        ].map((stat) => (
+          <Link key={stat.label} href={stat.href} className="flex items-center gap-4 rounded-2xl border border-border bg-card p-5 transition-colors hover:border-primary">
+            <span className={`flex size-11 items-center justify-center rounded-xl ${stat.highlight ? 'bg-primary text-primary-foreground' : 'bg-primary/10 text-primary'}`}>
+              <stat.icon aria-hidden />
+            </span>
+            <span>
+              <strong className="block text-2xl font-black tabular-nums">{stat.value}</strong>
+              <span className="text-sm text-muted-foreground">{stat.label}</span>
+            </span>
+          </Link>
+        ))}
       </section>
 
-      <section aria-labelledby="mensagem" className="mt-14 rounded-3xl border border-border bg-card p-6 sm:p-8">
-        <h2 id="mensagem" className="text-2xl font-bold">
-          Falar diretamente com a BillTech
+      <section aria-labelledby="como-ajudar">
+        <h2 id="como-ajudar" className="text-xl font-bold">
+          Como podemos ajudar?
         </h2>
-        <p className="mb-6 mt-2 text-muted-foreground">A sua mensagem chega diretamente à equipa, já associada à sua conta.</p>
-        <ClientMessageForm />
+        <ul className="mt-4 grid gap-4 sm:grid-cols-2 lg:grid-cols-4">
+          {quickActions.map((action) => (
+            <li key={action.type}>
+              <Link href={`/area-cliente/pedidos/novo?tipo=${action.type}`} className="group flex h-full flex-col gap-2 rounded-2xl border border-border bg-card p-5 transition-colors hover:border-primary">
+                <span className="flex size-10 items-center justify-center rounded-xl bg-primary/10 text-primary transition-colors group-hover:bg-primary group-hover:text-primary-foreground">
+                  <action.icon className="size-5" aria-hidden />
+                </span>
+                <span className="font-semibold">{action.title}</span>
+                <span className="text-sm text-muted-foreground">{action.text}</span>
+              </Link>
+            </li>
+          ))}
+        </ul>
       </section>
-    </main>
+
+      <div className="grid gap-10 lg:grid-cols-[1.3fr_1fr]">
+        <section aria-labelledby="projetos">
+          <div className="flex items-center justify-between">
+            <h2 id="projetos" className="text-xl font-bold">
+              Os seus projetos
+            </h2>
+            <Link href="/area-cliente/projetos" className="text-sm font-medium text-primary hover:underline">
+              Ver todos
+            </Link>
+          </div>
+          {projects.length === 0 ? (
+            <p className="mt-4 rounded-2xl border border-dashed border-border bg-card p-6 text-sm text-muted-foreground">
+              Ainda não há projetos na sua conta. Assim que iniciarmos o primeiro, acompanha aqui o progresso, etapas e datas.
+            </p>
+          ) : (
+            <ul className="mt-4 grid gap-4">
+              {projects.slice(0, 3).map((project) => (
+                <li key={project.id}>
+                  <ProjectCard project={project} />
+                </li>
+              ))}
+            </ul>
+          )}
+        </section>
+
+        <div className="grid content-start gap-10">
+          <section aria-labelledby="pedidos">
+            <div className="flex items-center justify-between">
+              <h2 id="pedidos" className="text-xl font-bold">
+                Pedidos recentes
+              </h2>
+              <Link href="/area-cliente/pedidos" className="text-sm font-medium text-primary hover:underline">
+                Ver todos
+              </Link>
+            </div>
+            {requests.length === 0 ? (
+              <p className="mt-4 rounded-2xl border border-dashed border-border bg-card p-6 text-sm text-muted-foreground">Ainda não fez nenhum pedido. É simples: use «Fazer um pedido» acima.</p>
+            ) : (
+              <ul className="mt-4 divide-y divide-border overflow-hidden rounded-2xl border border-border bg-card">
+                {requests.slice(0, 5).map((r) => (
+                  <li key={r.id}>
+                    <Link href={`/area-cliente/pedidos/${r.id}`} className="flex flex-col gap-1.5 p-4 transition-colors hover:bg-muted/60">
+                      <span className="flex items-start justify-between gap-2">
+                        <span className="font-medium leading-snug">{r.title}</span>
+                        {r.client_unread && <UnreadDot label="Nova resposta" />}
+                      </span>
+                      <span className="flex flex-wrap items-center gap-2 text-xs text-muted-foreground">
+                        <RequestStatusBadge status={r.status} />
+                        {requestTypeLabels[r.type]} · {formatDate(r.last_message_at)}
+                      </span>
+                    </Link>
+                  </li>
+                ))}
+              </ul>
+            )}
+          </section>
+
+          <section aria-labelledby="contacto" className="rounded-2xl border border-border bg-card p-5">
+            <h2 id="contacto" className="flex items-center gap-2 text-lg font-bold">
+              <LifeBuoy className="size-5 text-primary" aria-hidden /> A sua equipa
+            </h2>
+            <p className="mt-2 text-sm text-muted-foreground">Responsável pela sua conta: <strong className="text-foreground">{general.author}</strong>. Respondemos aos pedidos normalmente em 1 dia útil.</p>
+            {general.whatsappUrl && (
+              <Button render={<a href={general.whatsappUrl} target="_blank" rel="noopener noreferrer" />} nativeButton={false} variant="outline" size="sm" className="mt-4">
+                <MessageCircle aria-hidden /> Falar por WhatsApp<span className="sr-only"> (abre num novo separador)</span>
+              </Button>
+            )}
+          </section>
+        </div>
+      </div>
+    </div>
   )
 }

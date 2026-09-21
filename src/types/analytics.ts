@@ -44,7 +44,10 @@ export interface ProjectsKpi {
 export interface MonthlyRevenuePoint {
   /** ISO 8601 (primeiro dia do mês) */
   month: string
+  /** Receita faturada no mês (mês corrente = até à data) */
   revenue: number
+  /** Só no mês corrente: projeção de fecho */
+  projected?: number
 }
 
 export interface SectorDeliveryPoint {

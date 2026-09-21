@@ -1,53 +1,40 @@
-import Link from 'next/link'
-import { ArrowRight } from 'lucide-react'
-import { contentEditors } from '@/lib/content/editor-config'
-import type { ContentKey } from '@/lib/content/schema'
-import { createClient } from '@/lib/supabase/server'
+import type { Metadata } from 'next'
+import { ChartCard } from '@/components/admin/dashboard/chart-card'
+import { RevenueLineChart, SectorBarChart } from '@/components/admin/dashboard/charts'
+import { DemoBanner } from '@/components/admin/dashboard/demo-banner'
+import { ProjectsCard, RevenueCard, TrafficCard } from '@/components/admin/dashboard/kpi-cards'
+import { RealtimeUsersCard } from '@/components/admin/dashboard/realtime-users-card'
+import { getDashboardOverview } from '@/lib/admin/analytics'
 
-export default async function DashboardHome() {
-  const supabase = await createClient()
-  const [messages, clients, projects] = await Promise.all([
-    supabase.from('contact_messages').select('id', { count: 'exact', head: true }),
-    supabase.from('profiles').select('id', { count: 'exact', head: true }).eq('role', 'client'),
-    supabase.from('projects').select('id', { count: 'exact', head: true }),
-  ])
+export const metadata: Metadata = { title: 'Dashboard' }
 
-  const stats = [
-    { label: 'Mensagens recebidas', value: messages.count ?? 0, href: '/admin/mensagens' },
-    { label: 'Clientes registados', value: clients.count ?? 0, href: '/admin/clientes' },
-    { label: 'Projetos', value: projects.count ?? 0, href: '/admin/projetos' },
-  ]
+export default async function AdminHomePage() {
+  const overview = await getDashboardOverview()
 
   return (
-    <div className="max-w-4xl">
-      <h1 className="text-3xl font-black tracking-tight">Painel de controlo</h1>
-      <p className="mt-2 text-muted-foreground">Tudo o que aparece na landing page pode ser editado aqui. As alterações ficam públicas assim que guardar.</p>
+    <div className="mx-auto grid max-w-7xl gap-6">
+      <div>
+        <h1 className="text-3xl font-black tracking-tight">Visão executiva</h1>
+        <p className="mt-1 text-muted-foreground">Tráfego, receita e projetos da BillTech num só lugar.</p>
+      </div>
 
-      <ul className="mt-8 grid gap-4 sm:grid-cols-3">
-        {stats.map((s) => (
-          <li key={s.label}>
-            <Link href={s.href} className="block rounded-2xl border border-border bg-card p-5 hover:border-primary">
-              <strong className="block text-3xl font-black">{s.value}</strong>
-              <span className="text-sm text-muted-foreground">{s.label}</span>
-            </Link>
-          </li>
-        ))}
-      </ul>
+      <DemoBanner />
 
-      <h2 className="mt-12 text-xl font-bold">Editar secções</h2>
-      <ul className="mt-4 grid gap-3 sm:grid-cols-2">
-        {(Object.keys(contentEditors) as ContentKey[]).map((key) => (
-          <li key={key}>
-            <Link href={`/admin/conteudo/${key}`} className="group flex h-full items-start justify-between gap-3 rounded-2xl border border-border p-4 hover:border-primary">
-              <span>
-                <span className="block font-semibold">{contentEditors[key].title}</span>
-                <span className="text-sm text-muted-foreground">{contentEditors[key].description}</span>
-              </span>
-              <ArrowRight className="mt-1 size-4 shrink-0 transition-transform group-hover:translate-x-1" aria-hidden />
-            </Link>
-          </li>
-        ))}
-      </ul>
+      <section aria-label="Indicadores principais" className="grid gap-4 sm:grid-cols-2 xl:grid-cols-4">
+        <TrafficCard data={overview.traffic} delay={0} />
+        <RealtimeUsersCard initial={overview.realtime} delay={0.06} />
+        <RevenueCard data={overview.revenue} delay={0.12} />
+        <ProjectsCard data={overview.projects} delay={0.18} />
+      </section>
+
+      <section aria-label="Gráficos" className="grid gap-4 lg:grid-cols-2">
+        <ChartCard title="Receita dos últimos 6 meses" description="Faturação por mês de venda; a linha tracejada é a projeção de fecho do mês corrente." delay={0.1}>
+          <RevenueLineChart data={overview.revenueHistory} />
+        </ChartCard>
+        <ChartCard title="Projetos entregues por setor" description="Número de projetos concluídos em cada setor de atuação." delay={0.18}>
+          <SectorBarChart data={overview.deliveredBySector} />
+        </ChartCard>
+      </section>
     </div>
   )
 }
