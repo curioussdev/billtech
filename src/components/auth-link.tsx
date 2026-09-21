@@ -9,6 +9,7 @@ import { isSupabaseConfigured } from '@/lib/supabase/config'
 
 /**
  * Estado de sessão resolvido no cliente para a landing page continuar estática.
+ * O botão aparece SEMPRE (desktop e mobile): sem Supabase configurado, /entrar explica o que falta.
  * "/conta" reencaminha para a dashboard (admin) ou para a área de cliente.
  */
 export function AuthLink({ className }: { className?: string }) {
@@ -21,8 +22,6 @@ export function AuthLink({ className }: { className?: string }) {
     const { data } = supabase.auth.onAuthStateChange((_event, session) => setSignedIn(Boolean(session)))
     return () => data.subscription.unsubscribe()
   }, [])
-
-  if (!isSupabaseConfigured) return null
 
   return (
     <Button render={<Link href={signedIn ? '/conta' : '/entrar'} />} nativeButton={false} variant="ghost" className={className}>
