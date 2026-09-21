@@ -8,11 +8,12 @@ const items = [
   { href: '/area-cliente', label: 'Visão geral', exact: true },
   { href: '/area-cliente/projetos', label: 'Projetos' },
   { href: '/area-cliente/pedidos', label: 'Pedidos' },
+  { href: '/area-cliente/mensagens', label: 'Mensagens' },
   { href: '/area-cliente/solucoes', label: 'Soluções' },
   { href: '/area-cliente/conta', label: 'A minha conta' },
 ]
 
-export function PortalNav({ unread }: { unread: number }) {
+export function PortalNav({ unread, unreadMessages }: { unread: number; unreadMessages: number }) {
   const pathname = usePathname()
 
   return (
@@ -30,9 +31,9 @@ export function PortalNav({ unread }: { unread: number }) {
             )}
           >
             {item.label}
-            {item.href.endsWith('/pedidos') && unread > 0 && (
+            {((item.href.endsWith('/pedidos') && unread > 0) || (item.href.endsWith('/mensagens') && unreadMessages > 0)) && (
               <span className="rounded-full bg-primary px-1.5 py-0.5 text-[0.65rem] font-bold leading-none text-primary-foreground">
-                {unread}
+                {item.href.endsWith('/mensagens') ? unreadMessages : unread}
                 <span className="sr-only"> por ler</span>
               </span>
             )}

@@ -30,3 +30,16 @@ export async function getRequestWithMessages(id: string): Promise<{ request: Por
   const { data: messages } = await supabase.from('request_messages').select('*').eq('request_id', id).order('created_at', { ascending: true })
   return { request: request as PortalRequest, messages: (messages ?? []) as RequestMessage[] }
 }
+
+export type InboxMessage = { read_at: string | null; broadcast: { id: string; subject: string; body: string; created_at: string } }
+
+/** Comunicados enviados pela BillTech a este cliente (a RLS limita aos seus), do mais recente ao mais antigo. */
+export async function getInbox(): Promise<InboxMessage[]> {
+  const supabase = await createClient()
+  const { data } = await supabase.from('broadcast_recipients').select('read_at, broadcasts(id, subject, body, created_at)')
+  const rows = (data ?? []) as unknown as { read_at: string | null; broadcasts: InboxMessage['broadcast'] | null }[]
+  return rows
+    .filter((r) => r.broadcasts)
+    .map((r) => ({ read_at: r.read_at, broadcast: r.broadcasts as InboxMessage['broadcast'] }))
+    .sort((a, b) => b.broadcast.created_at.localeCompare(a.broadcast.created_at))
+}

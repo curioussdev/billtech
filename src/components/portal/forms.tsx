@@ -45,7 +45,7 @@ function Submit({ pending, children, icon }: { pending: boolean; children: React
 
 // ─── Novo pedido (cliente) ──────────────────────────────────────────────────
 
-export function NewRequestForm({ projects, defaultType, defaultProjectId }: { projects: Pick<PortalProject, 'id' | 'name'>[]; defaultType?: RequestType; defaultProjectId?: string }) {
+export function NewRequestForm({ projects, defaultType, defaultProjectId, defaultTitle }: { projects: Pick<PortalProject, 'id' | 'name'>[]; defaultType?: RequestType; defaultProjectId?: string; defaultTitle?: string }) {
   const [state, action, pending] = useActionState(createRequest, initial)
   const errors = state.fieldErrors ?? {}
   const v = state.values ?? {}
@@ -93,7 +93,7 @@ export function NewRequestForm({ projects, defaultType, defaultProjectId }: { pr
 
       <div className="grid gap-2">
         <Label htmlFor="title">Assunto</Label>
-        <Input id="title" name="title" required maxLength={120} defaultValue={v.title} placeholder="Ex.: Adicionar campo de NIF ao formulário de faturação" aria-invalid={errors.title ? true : undefined} aria-describedby={errors.title ? 'title-error' : undefined} className="h-11 text-base" />
+        <Input id="title" name="title" required maxLength={120} defaultValue={v.title ?? defaultTitle} placeholder="Ex.: Adicionar campo de NIF ao formulário de faturação" aria-invalid={errors.title ? true : undefined} aria-describedby={errors.title ? 'title-error' : undefined} className="h-11 text-base" />
         <FieldError id="title" message={errors.title} />
       </div>
 

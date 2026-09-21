@@ -2,8 +2,9 @@ import type { Metadata } from 'next'
 import Link from 'next/link'
 import { notFound } from 'next/navigation'
 import { z } from 'zod'
-import { ArrowLeft, Trash2 } from 'lucide-react'
+import { ArrowLeft, Send, Trash2 } from 'lucide-react'
 import { deleteClientProject } from '@/actions/portal'
+import { Button } from '@/components/ui/button'
 import { ClientAccessForm } from '@/components/admin/editor/client-access-form'
 import { ConfirmButton } from '@/components/admin/editor/confirm-button'
 import { ProjectStageBadge, RequestStatusBadge } from '@/components/portal/badges'
@@ -43,6 +44,9 @@ export default async function AdminClientPage({ params }: { params: Promise<{ id
           {client.email}
           {client.company ? ` · ${client.company}` : ''} · registado em {formatDate(client.created_at)}
         </p>
+        <Button render={<Link href={`/admin/comunicacoes/nova?cliente=${id}`} />} nativeButton={false} variant="outline" size="sm" className="mt-4">
+          <Send aria-hidden /> Enviar mensagem a este cliente
+        </Button>
       </div>
 
       <section aria-labelledby="projetos" className="grid gap-4">

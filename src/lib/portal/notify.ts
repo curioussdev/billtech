@@ -64,3 +64,17 @@ export function notifyClientStatus(request: PortalRequest, clientEmail: string, 
     })
   })
 }
+
+export const clientMessageUrl = (id: string) => `${siteUrl}/area-cliente/mensagens/${id}`
+
+/** Email de um comunicado, personalizado com o primeiro nome do cliente. */
+export function buildBroadcastEmail(subject: string, body: string, clientName: string, broadcastId: string) {
+  const firstName = clientName.trim().split(/s+/)[0]
+  const text = `<p style="margin:0 0 12px">${firstName ? `Olá ${escapeHtml(firstName)},` : 'Olá,'}</p><div style="white-space:pre-wrap;margin:0">${escapeHtml(body)}</div>`
+  return emailLayout({
+    title: subject,
+    bodyHtml: text,
+    cta: { label: 'Ver no portal e responder', href: clientMessageUrl(broadcastId) },
+    footer: 'Recebe esta mensagem porque tem uma conta de cliente na BillTech. Pode responder diretamente na sua área de cliente.',
+  })
+}

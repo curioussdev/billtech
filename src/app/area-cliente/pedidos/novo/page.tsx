@@ -7,8 +7,8 @@ import { REQUEST_TYPES, type RequestType } from '@/types/portal'
 
 export const metadata: Metadata = { title: 'Novo pedido' }
 
-export default async function NewRequestPage({ searchParams }: { searchParams: Promise<{ tipo?: string; projeto?: string }> }) {
-  const { tipo, projeto } = await searchParams
+export default async function NewRequestPage({ searchParams }: { searchParams: Promise<{ tipo?: string; projeto?: string; assunto?: string }> }) {
+  const { tipo, projeto, assunto } = await searchParams
   const projects = await getProjects()
 
   const defaultType = REQUEST_TYPES.includes(tipo as RequestType) ? (tipo as RequestType) : undefined
@@ -25,7 +25,7 @@ export default async function NewRequestPage({ searchParams }: { searchParams: P
         <p className="mt-2 text-muted-foreground">Conte-nos o que precisa. Não há pedidos «pequenos demais»: respondemos a todos, normalmente no prazo de 1 dia útil, e continuamos a conversa aqui.</p>
       </header>
       <div className="rounded-2xl border border-border bg-card p-5 sm:p-8">
-        <NewRequestForm projects={projects.map((p) => ({ id: p.id, name: p.name }))} defaultType={defaultType} defaultProjectId={defaultProjectId} />
+        <NewRequestForm projects={projects.map((p) => ({ id: p.id, name: p.name }))} defaultType={defaultType} defaultProjectId={defaultProjectId} defaultTitle={assunto?.slice(0, 120)} />
       </div>
     </div>
   )

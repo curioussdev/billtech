@@ -48,3 +48,16 @@ export interface RequestMessage {
   internal: boolean
   created_at: string
 }
+
+export interface Broadcast {
+  id: string
+  admin_email: string
+  subject: string
+  body: string
+  audience: 'all' | 'selected'
+  recipient_count: number
+  email_requested: boolean
+  created_at: string
+}
+
+export type EmailStatus = 'sent' | 'failed' | 'skipped'

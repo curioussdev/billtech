@@ -39,6 +39,35 @@ export async function sendEmail({ to, subject, html, replyTo }: OutgoingEmail) {
   if (!response.ok) throw new Error(`Resend respondeu ${response.status}: ${await response.text()}`)
 }
 
+/**
+ * Envio em lote (Resend aceita até 100 por chamada). Devolve, por email e pela mesma ordem, se foi aceite.
+ * Uma chamada falhada marca só esse bloco como falhado; os restantes seguem.
+ */
+export async function sendEmailBatch(emails: OutgoingEmail[]): Promise<boolean[]> {
+  const apiKey = process.env.RESEND_API_KEY
+  if (!apiKey) return emails.map(() => false)
+
+  const results: boolean[] = []
+  const CHUNK = 50
+  for (let i = 0; i < emails.length; i += CHUNK) {
+    const chunk = emails.slice(i, i + CHUNK)
+    try {
+      const response = await fetch('https://api.resend.com/emails/batch', {
+        method: 'POST',
+        headers: { Authorization: `Bearer ${apiKey}`, 'Content-Type': 'application/json' },
+        body: JSON.stringify(chunk.map((e) => ({ from: process.env.RESEND_FROM || 'BillTech <onboarding@resend.dev>', to: [e.to], reply_to: e.replyTo, subject: e.subject, html: e.html }))),
+        signal: AbortSignal.timeout(20_000),
+      })
+      if (!response.ok) throw new Error(`Resend respondeu ${response.status}: ${await response.text()}`)
+      results.push(...chunk.map(() => true))
+    } catch (error) {
+      console.error('[broadcast] lote de emails falhou:', error)
+      results.push(...chunk.map(() => false))
+    }
+  }
+  return results
+}
+
 async function sendLeadEmail(lead: Lead, to: string) {
   const rows = [
     ['Nome', lead.name],

@@ -9,6 +9,7 @@ import {
   LayoutDashboard,
   MessageSquareQuote,
   ScrollText,
+  Send,
   Search,
   Settings,
   Target,
@@ -62,6 +63,7 @@ export const adminNav: NavGroup[] = [
   {
     label: 'Negócio',
     items: [
+      { title: 'Enviar mensagens', href: '/admin/comunicacoes', icon: Send },
       { title: 'Pedidos de clientes', href: '/admin/pedidos', icon: LifeBuoy, badge: 'requests' },
       { title: 'Receita & Projetos', href: '/admin/revenue', icon: Wallet },
       { title: 'Pipeline de Vendas', href: '/admin/pipeline', icon: KanbanSquare },

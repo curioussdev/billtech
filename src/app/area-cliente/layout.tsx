@@ -14,8 +14,9 @@ export const metadata: Metadata = { title: { default: 'Área de cliente', templa
 export default async function PortalLayout({ children }: { children: React.ReactNode }) {
   const profile = await requireUser()
   const supabase = await createClient()
-  const [{ count }, { general }] = await Promise.all([
+  const [{ count }, { count: unreadMessages }, { general }] = await Promise.all([
     supabase.from('requests').select('id', { count: 'exact', head: true }).eq('client_id', profile.id).eq('client_unread', true),
+    supabase.from('broadcast_recipients').select('broadcast_id', { count: 'exact', head: true }).eq('client_id', profile.id).is('read_at', null),
     getSiteContent(),
   ])
 
@@ -52,7 +53,7 @@ export default async function PortalLayout({ children }: { children: React.React
           </div>
         </div>
         <div className="mx-auto max-w-6xl px-4 lg:px-8">
-          <PortalNav unread={count ?? 0} />
+          <PortalNav unread={count ?? 0} unreadMessages={unreadMessages ?? 0} />
         </div>
       </header>
 
