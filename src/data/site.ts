@@ -1,8 +1,12 @@
 /** Constantes técnicas (não editáveis na dashboard). O conteúdo editável vive em `defaults.ts`. */
 /**
  * URL público do site. Tolerante a valores vazios/inválidos (na Vercel uma variável pode existir mas estar em branco):
- * NEXT_PUBLIC_SITE_URL → domínio de produção da Vercel → URL do deploy → localhost.
+ * Todos os links absolutos (emails, redirect de confirmação, sitemap, canonical) partem daqui.
+ * NEXT_PUBLIC_SITE_URL → domínio de produção da Vercel → URL do deploy → PRODUCTION_URL.
  */
+/** Domínio final: usado quando nenhuma variável está definida, para nenhum link (ex.: em emails) apontar a localhost. */
+export const PRODUCTION_URL = 'https://billtech.online'
+
 function resolveSiteUrl(): string {
   const candidates = [process.env.NEXT_PUBLIC_SITE_URL, process.env.VERCEL_PROJECT_PRODUCTION_URL, process.env.VERCEL_URL]
   for (const raw of candidates) {
@@ -15,7 +19,7 @@ function resolveSiteUrl(): string {
       // valor inválido: tenta o próximo
     }
   }
-  return 'http://localhost:3000'
+  return PRODUCTION_URL
 }
 
 export const siteUrl = resolveSiteUrl()

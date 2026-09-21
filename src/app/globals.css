@@ -152,3 +152,28 @@
     @apply outline-2 outline-offset-2 outline-ring;
   }
 }
+
+/* Cartões do carrossel: flutuam suavemente, em fases diferentes */
+@keyframes float-y {
+  0%,
+  100% {
+    transform: translateY(0);
+  }
+  50% {
+    transform: translateY(-10px);
+  }
+}
+.float-card {
+  animation: float-y 6.5s ease-in-out infinite;
+  animation-delay: var(--float-delay, 0s);
+  will-change: transform;
+}
+.float-card:hover,
+.float-card:focus-visible {
+  animation-play-state: paused;
+}
+@media (prefers-reduced-motion: reduce) {
+  .float-card {
+    animation: none;
+  }
+}

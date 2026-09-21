@@ -3,7 +3,8 @@
 import { revalidatePath } from 'next/cache'
 import { redirect } from 'next/navigation'
 import { z } from 'zod'
-import { requireAdmin, requireUser } from '@/lib/auth'
+import { logAudit } from '@/lib/audit'
+import { requireAdmin, requireSuperAdminForAction, requireUser } from '@/lib/auth'
 import { notifyAdminClientReply, notifyAdminNewRequest, notifyClientReply, notifyClientStatus } from '@/lib/portal/notify'
 import { requestStatusLabels } from '@/lib/portal/labels'
 import { createAdminClient, createClient } from '@/lib/supabase/server'
@@ -178,6 +179,13 @@ export async function adminReply(_prev: PortalFormState, formData: FormData): Pr
     const { data: client } = await db.from('profiles').select('email, full_name').eq('id', request.client_id).single()
     if (client) await notifyClientReply(request as PortalRequest, client.email, client.full_name, parsed.data.body)
   }
+  await logAudit({
+    admin,
+    action: internal ? 'ADD_INTERNAL_NOTE' : 'REPLY_REQUEST',
+    resource: 'pedidos',
+    targetId: request.id,
+    details: { title: request.title, clientId: request.client_id, internal, excerpt: parsed.data.body.slice(0, 300), length: parsed.data.body.length },
+  })
   revalidatePath(`/admin/pedidos/${request.id}`)
   return { status: 'success', message: internal ? 'Nota interna guardada.' : 'Resposta enviada ao cliente.' }
 }
@@ -202,6 +210,13 @@ export async function updateRequestMeta(_prev: PortalFormState, formData: FormDa
     const { data: client } = await db.from('profiles').select('email').eq('id', request.client_id).single()
     if (client) await notifyClientStatus(request as PortalRequest, client.email, parsed.data.status)
   }
+  await logAudit({
+    admin,
+    action: 'UPDATE_REQUEST',
+    resource: 'pedidos',
+    targetId: request.id,
+    details: { title: request.title, clientId: request.client_id, before: { status: request.status, priority: request.priority }, after: { status: parsed.data.status, priority: parsed.data.priority } },
+  })
   revalidatePath('/admin/pedidos', 'layout')
   return { status: 'success', message: 'Pedido atualizado.' }
 }
@@ -218,7 +233,7 @@ const projectSchema = z.object({
 })
 
 export async function saveClientProject(_prev: PortalFormState, formData: FormData): Promise<PortalFormState> {
-  await requireAdmin()
+  const admin = await requireAdmin()
   const values = Object.fromEntries(['id', 'clientId', 'name', 'description', 'status', 'progress', 'dueDate', 'url'].map((k) => [k, read(formData, k)]))
   const parsed = projectSchema.safeParse(values)
   if (!parsed.success) return { status: 'error', message: 'Corrija os campos assinalados.', fieldErrors: fieldErrorsOf(parsed.error), values }
@@ -227,8 +242,13 @@ export async function saveClientProject(_prev: PortalFormState, formData: FormDa
   const row = { client_id: clientId, name: rest.name, description: rest.description, status: rest.status, progress: rest.progress, due_date: dueDate || null, url: rest.url, updated_at: new Date().toISOString() }
 
   const supabase = await createClient()
-  const { error } = id ? await supabase.from('client_projects').update(row).eq('id', id) : await supabase.from('client_projects').insert(row)
+  const { data: before } = id ? await supabase.from('client_projects').select('*').eq('id', id).maybeSingle() : { data: null }
+  const { data: saved, error } = id
+    ? await supabase.from('client_projects').update(row).eq('id', id).select('id').single()
+    : await supabase.from('client_projects').insert(row).select('id').single()
   if (error) return { status: 'error', message: `Não foi possível guardar: ${error.message}`, values }
+
+  await logAudit({ admin, action: id ? 'UPDATE_CLIENT_PROJECT' : 'CREATE_CLIENT_PROJECT', resource: 'projetos_cliente', targetId: saved?.id ?? id, details: { clientId, before, after: row } })
 
   revalidatePath(`/admin/clientes/${clientId}`)
   revalidatePath('/area-cliente', 'layout')
@@ -236,11 +256,15 @@ export async function saveClientProject(_prev: PortalFormState, formData: FormDa
 }
 
 export async function deleteClientProject(formData: FormData) {
-  await requireAdmin()
+  const admin = await requireSuperAdminForAction({ action: 'DELETE_CLIENT_PROJECT', resource: 'projetos_cliente' })
+  if (!admin) return
   const id = z.uuid().safeParse(read(formData, 'id'))
   if (!id.success) return
   const supabase = await createClient()
-  await supabase.from('client_projects').delete().eq('id', id.data)
+  const { data: before } = await supabase.from('client_projects').select('*').eq('id', id.data).maybeSingle()
+  const { error } = await supabase.from('client_projects').delete().eq('id', id.data)
+  if (error) return
+  await logAudit({ admin, action: 'DELETE_CLIENT_PROJECT', resource: 'projetos_cliente', targetId: id.data, details: { clientId: before?.client_id, before } })
   revalidatePath('/admin/clientes', 'layout')
   revalidatePath('/area-cliente', 'layout')
 }

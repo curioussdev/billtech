@@ -75,7 +75,7 @@ export const adminNav: NavGroup[] = [
     label: 'Sistema',
     items: [
       { title: 'Configurações', href: '/admin/definicoes', icon: Settings },
-      { title: 'Logs de Acesso', href: '/admin/logs', icon: ScrollText },
+      { title: 'Auditoria & Logs', href: '/admin/logs', icon: ScrollText },
     ],
   },
 ]

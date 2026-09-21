@@ -2,6 +2,7 @@
 
 import { useId, useState } from 'react'
 import { ArrowDown, ArrowUp, ImageUp, Loader2, Plus, Trash2 } from 'lucide-react'
+import { auditMediaUpload } from '@/actions/dashboard'
 import { Button } from '@/components/ui/button'
 import { Input } from '@/components/ui/input'
 import { Label } from '@/components/ui/label'
@@ -69,6 +70,7 @@ function ImageEditor({ label, folder, value, onChange, help }: { label: string; 
       if (uploadError) throw uploadError
       const { data } = supabase.storage.from(MEDIA_BUCKET).getPublicUrl(path)
       onChange({ ...value, src: data.publicUrl })
+      void auditMediaUpload(path, file.size) // trilha de auditoria (falha silenciosa: não bloqueia o carregamento)
     } catch (e) {
       setError(e instanceof Error ? e.message : 'Falha no carregamento.')
     } finally {

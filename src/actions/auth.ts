@@ -3,6 +3,7 @@
 import { redirect } from 'next/navigation'
 import { z } from 'zod'
 import { siteUrl } from '@/data/site'
+import { logAudit } from '@/lib/audit'
 import { getCurrentProfile } from '@/lib/auth'
 import { isSupabaseConfigured } from '@/lib/supabase/config'
 import { createClient } from '@/lib/supabase/server'
@@ -52,6 +53,8 @@ export async function login(_prev: AuthState, formData: FormData): Promise<AuthS
   if (error) return { status: 'error', message: 'Email ou palavra-passe incorretos, ou email ainda por confirmar.', values }
 
   const profile = await getCurrentProfile()
+  // Sessões de administradores ficam na trilha de auditoria (Logs de Acesso)
+  if (profile?.role === 'admin') await logAudit({ admin: profile, action: 'LOGIN', resource: 'sessao', details: { method: 'password' } })
   redirect(profile?.role === 'admin' ? '/admin' : '/area-cliente')
 }
 
@@ -80,6 +83,8 @@ export async function register(_prev: AuthState, formData: FormData): Promise<Au
 
 export async function logout() {
   if (isSupabaseConfigured) {
+    const profile = await getCurrentProfile()
+    if (profile?.role === 'admin') await logAudit({ admin: profile, action: 'LOGOUT', resource: 'sessao' })
     const supabase = await createClient()
     await supabase.auth.signOut()
   }

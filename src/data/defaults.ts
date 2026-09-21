@@ -21,7 +21,8 @@ export const defaultContent: SiteContent = {
       'transformação digital',
     ],
     headerCta: 'Fale conosco',
-    whatsappUrl: 'https://wa.me/351000000000',
+    // Número provisório: 915385517 (Portugal, +351). Editável na dashboard → Geral & SEO.
+    whatsappUrl: 'https://wa.me/351915385517?text=Ol%C3%A1%21%20Vim%20pelo%20site%20da%20BillTech%20e%20gostaria%20de%20falar%20com%20a%20equipa.',
     footerText: 'Desenvolvido por José Lopes.',
   },
   hero: {

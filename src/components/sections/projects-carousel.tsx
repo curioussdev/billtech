@@ -3,14 +3,15 @@ import Link from 'next/link'
 import { ArrowRight } from 'lucide-react'
 import { Reveal } from '@/components/motion/reveal'
 import { Badge } from '@/components/ui/badge'
-import { Carousel, CarouselContent, CarouselItem, CarouselNext, CarouselPrevious } from '@/components/ui/carousel'
+import { AutoCarousel } from '@/components/sections/auto-carousel'
 import type { Project, SiteContent } from '@/lib/content/schema'
 
-function ProjectCard({ project, priority }: { project: Project; priority?: boolean }) {
+function ProjectCard({ project, priority, index }: { project: Project; priority?: boolean; index: number }) {
   return (
     <Link
       href={`/projetos/${project.slug}`}
-      className="group relative block aspect-[4/3] overflow-hidden rounded-3xl border border-white/10 outline-offset-4 focus-visible:outline-2 focus-visible:outline-inverse-brand"
+      className="float-card group relative block aspect-[4/3] overflow-hidden rounded-3xl border border-white/10 shadow-xl shadow-black/30 outline-offset-4 transition-shadow duration-500 hover:shadow-2xl hover:shadow-black/50 focus-visible:outline-2 focus-visible:outline-inverse-brand"
+      style={{ ["--float-delay" as string]: `${(index % 6) * -1.1}s` }}
     >
       <Image
         src={project.cover.src}
@@ -44,19 +45,7 @@ export function ProjectsCarousel({ intro, projects }: { intro: SiteContent['proj
         </Reveal>
 
         <Reveal delay={0.1}>
-          <Carousel opts={{ align: 'start' }} className="mt-10" aria-label="Projetos em destaque">
-            <CarouselContent className="-ml-5">
-              {projects.map((project, index) => (
-                <CarouselItem key={project.slug} className="pl-5 md:basis-1/2 lg:basis-1/3" aria-label={`${index + 1} de ${projects.length}`}>
-                  <ProjectCard project={project} priority={index === 0} />
-                </CarouselItem>
-              ))}
-            </CarouselContent>
-            <div className={`mt-7 flex justify-center gap-2 ${projects.length > 3 ? "" : "lg:hidden"}`}>
-              <CarouselPrevious className="static translate-y-0 border-white/30 bg-transparent text-inverse-foreground hover:bg-white/10 hover:text-inverse-foreground" />
-              <CarouselNext className="static translate-y-0 border-white/30 bg-transparent text-inverse-foreground hover:bg-white/10 hover:text-inverse-foreground" />
-            </div>
-          </Carousel>
+          <AutoCarousel label="Projetos em destaque" slides={projects.map((project, index) => <ProjectCard key={project.slug} project={project} priority={index < 3} index={index} />)} />
         </Reveal>
       </div>
     </section>
