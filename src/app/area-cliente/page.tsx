@@ -1,11 +1,14 @@
 import type { Metadata } from 'next'
 import Link from 'next/link'
-import { ArrowRight, FolderKanban, Inbox, MessageCircle, Sparkles, Wrench, Bug, Calculator, LifeBuoy } from 'lucide-react'
+import { ArrowRight, FolderKanban, Inbox, MessageCircle, Receipt, Sparkles, Wrench, Bug, Calculator, LifeBuoy } from 'lucide-react'
 import { RequestStatusBadge, UnreadDot } from '@/components/portal/badges'
+import { InvoiceListItem } from '@/components/portal/invoice-widgets'
+import { LoyaltyCard } from '@/components/portal/loyalty-card'
 import { ProjectCard } from '@/components/portal/project-widgets'
 import { Button } from '@/components/ui/button'
 import { requireUser } from '@/lib/auth'
 import { getSiteContent } from '@/lib/content/get'
+import { getMyInvoices, getMyLoyalty } from '@/lib/finance/queries'
 import { formatDate, OPEN_STATUSES, requestTypeLabels } from '@/lib/portal/labels'
 import { getProjects, getRequests } from '@/lib/portal/queries'
 
@@ -20,11 +23,12 @@ const quickActions = [
 
 export default async function PortalHomePage() {
   const profile = await requireUser()
-  const [projects, requests, { general }] = await Promise.all([getProjects(), getRequests(), getSiteContent()])
+  const [projects, requests, invoices, loyalty, { general }] = await Promise.all([getProjects(), getRequests(), getMyInvoices(), getMyLoyalty(), getSiteContent()])
 
   const activeProjects = projects.filter((p) => p.status !== 'entregue' && p.status !== 'manutencao')
   const openRequests = requests.filter((r) => OPEN_STATUSES.includes(r.status))
   const unread = requests.filter((r) => r.client_unread)
+  const openInvoices = invoices.filter((i) => i.status === 'pendente' || i.status === 'atrasado')
   const firstName = (profile.full_name || profile.email).split(/[\s@]/)[0]
 
   return (
@@ -41,9 +45,10 @@ export default async function PortalHomePage() {
         </Button>
       </header>
 
-      <section aria-label="Resumo" className="grid gap-4 sm:grid-cols-3">
+      <section aria-label="Resumo" className="grid gap-4 sm:grid-cols-2 lg:grid-cols-4">
         {[
           { label: 'Projetos em curso', value: activeProjects.length, href: '/area-cliente/projetos', icon: FolderKanban },
+          { label: 'Faturas em aberto', value: openInvoices.length, href: '/area-cliente/pagamentos', icon: Receipt, highlight: openInvoices.some((i) => i.status === 'atrasado') },
           { label: 'Pedidos em aberto', value: openRequests.length, href: '/area-cliente/pedidos', icon: Inbox },
           { label: 'Mensagens por ler', value: unread.length, href: '/area-cliente/pedidos', icon: MessageCircle, highlight: unread.length > 0 },
         ].map((stat) => (
@@ -104,6 +109,30 @@ export default async function PortalHomePage() {
         </section>
 
         <div className="grid content-start gap-10">
+          <section aria-label="Fidelidade BillTech">
+            <LoyaltyCard loyalty={loyalty} />
+          </section>
+
+          {openInvoices.length > 0 && (
+            <section aria-labelledby="faturas">
+              <div className="flex items-center justify-between">
+                <h2 id="faturas" className="text-xl font-bold">
+                  Faturas em aberto
+                </h2>
+                <Link href="/area-cliente/pagamentos" className="text-sm font-medium text-primary hover:underline">
+                  Ver todas
+                </Link>
+              </div>
+              <ul className="mt-4 divide-y divide-border overflow-hidden rounded-2xl border border-border bg-card">
+                {openInvoices.slice(0, 3).map((invoice) => (
+                  <li key={invoice.id}>
+                    <InvoiceListItem invoice={invoice} />
+                  </li>
+                ))}
+              </ul>
+            </section>
+          )}
+
           <section aria-labelledby="pedidos">
             <div className="flex items-center justify-between">
               <h2 id="pedidos" className="text-xl font-bold">

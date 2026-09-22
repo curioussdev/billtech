@@ -29,11 +29,18 @@ export const AUDIT_ACTIONS = [
   'MARK_DEAL_WON',
   'MARK_DEAL_LOST',
   'SET_GOAL',
+  'APPLY_DISCOUNT',
+  'EXTEND_DUE_DATE',
+  'CONVERT_TO_INSTALLMENTS',
+  'MARK_INVOICE_PAID_EXTERNALLY',
+  'CREATE_INVOICE',
+  'CREATE_DISCOUNT_CODE',
+  'ADD_LOYALTY_POINTS',
 ] as const
 export type AuditAction = (typeof AUDIT_ACTIONS)[number]
 
 /** Módulos/recursos afetados (campo target_resource). */
-export const AUDIT_RESOURCES = ['sessao', 'seguranca', 'conteudo_landing', 'projetos_cases', 'media', 'definicoes', 'permissoes_cliente', 'pedidos', 'projetos_cliente', 'comunicacoes', 'negocio'] as const
+export const AUDIT_RESOURCES = ['sessao', 'seguranca', 'conteudo_landing', 'projetos_cases', 'media', 'definicoes', 'permissoes_cliente', 'pedidos', 'projetos_cliente', 'comunicacoes', 'negocio', 'financeiro'] as const
 export type AuditResource = (typeof AUDIT_RESOURCES)[number]
 
 export type AuditEntry = {

@@ -7,19 +7,28 @@ import { cn } from '@/lib/utils'
 const items = [
   { href: '/area-cliente', label: 'Visão geral', exact: true },
   { href: '/area-cliente/projetos', label: 'Projetos' },
+  { href: '/area-cliente/pagamentos', label: 'Faturas' },
   { href: '/area-cliente/pedidos', label: 'Pedidos' },
   { href: '/area-cliente/mensagens', label: 'Mensagens' },
   { href: '/area-cliente/solucoes', label: 'Soluções' },
   { href: '/area-cliente/conta', label: 'A minha conta' },
 ]
 
-export function PortalNav({ unread, unreadMessages }: { unread: number; unreadMessages: number }) {
+export function PortalNav({ unread, unreadMessages, openInvoices }: { unread: number; unreadMessages: number; openInvoices: number }) {
   const pathname = usePathname()
 
+  const badgeFor = (href: string) => {
+    if (href.endsWith('/pedidos')) return unread
+    if (href.endsWith('/mensagens')) return unreadMessages
+    if (href.endsWith('/pagamentos')) return openInvoices
+    return 0
+  }
+
   return (
-    <nav aria-label="Área de cliente" className="-mb-px flex gap-1 overflow-x-auto">
+    <nav aria-label="Área de cliente" className="-mb-px flex gap-1 overflow-x-auto print:hidden">
       {items.map((item) => {
         const active = item.exact ? pathname === item.href : pathname === item.href || pathname.startsWith(`${item.href}/`)
+        const badge = badgeFor(item.href)
         return (
           <Link
             key={item.href}
@@ -31,9 +40,9 @@ export function PortalNav({ unread, unreadMessages }: { unread: number; unreadMe
             )}
           >
             {item.label}
-            {((item.href.endsWith('/pedidos') && unread > 0) || (item.href.endsWith('/mensagens') && unreadMessages > 0)) && (
+            {badge > 0 && (
               <span className="rounded-full bg-primary px-1.5 py-0.5 text-[0.65rem] font-bold leading-none text-primary-foreground">
-                {item.href.endsWith('/mensagens') ? unreadMessages : unread}
+                {badge}
                 <span className="sr-only"> por ler</span>
               </span>
             )}

@@ -14,9 +14,10 @@ export const metadata: Metadata = { title: { default: 'Área de cliente', templa
 export default async function PortalLayout({ children }: { children: React.ReactNode }) {
   const profile = await requireUser()
   const supabase = await createClient()
-  const [{ count }, { count: unreadMessages }, { general }] = await Promise.all([
+  const [{ count }, { count: unreadMessages }, { count: openInvoices }, { general }] = await Promise.all([
     supabase.from('requests').select('id', { count: 'exact', head: true }).eq('client_id', profile.id).eq('client_unread', true),
     supabase.from('broadcast_recipients').select('broadcast_id', { count: 'exact', head: true }).eq('client_id', profile.id).is('read_at', null),
+    supabase.from('invoices').select('id', { count: 'exact', head: true }).eq('status', 'atrasado'),
     getSiteContent(),
   ])
 
@@ -25,7 +26,7 @@ export default async function PortalLayout({ children }: { children: React.React
       <a href="#conteudo" className="fixed left-4 top-4 z-[60] -translate-y-24 rounded-md bg-primary px-4 py-2 font-semibold text-primary-foreground transition-transform focus:translate-y-0">
         Saltar para o conteúdo
       </a>
-      <header className="border-b border-border bg-background">
+      <header className="border-b border-border bg-background print:hidden">
         <div className="mx-auto flex h-16 max-w-6xl items-center justify-between gap-3 px-4 lg:px-8">
           <Link href="/area-cliente" className="flex items-center gap-2 rounded-md font-black tracking-tight">
             <span className="flex size-8 items-center justify-center rounded-lg bg-primary text-primary-foreground">
@@ -53,15 +54,15 @@ export default async function PortalLayout({ children }: { children: React.React
           </div>
         </div>
         <div className="mx-auto max-w-6xl px-4 lg:px-8">
-          <PortalNav unread={count ?? 0} unreadMessages={unreadMessages ?? 0} />
+          <PortalNav unread={count ?? 0} unreadMessages={unreadMessages ?? 0} openInvoices={openInvoices ?? 0} />
         </div>
       </header>
 
-      <main id="conteudo" className="mx-auto max-w-6xl px-4 py-8 lg:px-8 lg:py-10">
+      <main id="conteudo" className="mx-auto max-w-6xl px-4 py-8 lg:px-8 lg:py-10 print:p-0">
         {children}
       </main>
 
-      <footer className="border-t border-border bg-background">
+      <footer className="border-t border-border bg-background print:hidden">
         <div className="mx-auto flex max-w-6xl flex-col gap-3 px-4 py-6 text-sm text-muted-foreground sm:flex-row sm:items-center sm:justify-between lg:px-8">
           <p>Precisa de falar com uma pessoa? Estamos a um clique de distância.</p>
           <div className="flex flex-wrap gap-4">
