@@ -2,7 +2,7 @@ import type { Metadata } from 'next'
 import Image from 'next/image'
 import Link from 'next/link'
 import { notFound } from 'next/navigation'
-import { ArrowLeft, ArrowRight, Check, TrendingUp } from 'lucide-react'
+import { ArrowLeft, ArrowRight, ArrowUpRight, Check, Globe2, TrendingUp } from 'lucide-react'
 import { Reveal } from '@/components/motion/reveal'
 import { Badge } from '@/components/ui/badge'
 import { Button } from '@/components/ui/button'
@@ -79,18 +79,24 @@ export default async function ProjectPage({ params }: Props) {
             <p className="mt-5 max-w-2xl text-xl leading-8 text-muted-foreground">{project.summary}</p>
 
             <dl className="mt-10 grid gap-6 border-y border-border py-6 sm:grid-cols-3">
-              <div>
-                <dt className="text-xs font-bold uppercase tracking-widest text-muted-foreground">Cliente</dt>
-                <dd className="mt-1 font-semibold">{project.client}</dd>
-              </div>
-              <div>
-                <dt className="text-xs font-bold uppercase tracking-widest text-muted-foreground">Duração</dt>
-                <dd className="mt-1 font-semibold">{project.duration}</dd>
-              </div>
-              <div>
-                <dt className="text-xs font-bold uppercase tracking-widest text-muted-foreground">Serviços</dt>
-                <dd className="mt-1 font-semibold">{project.services.join(' · ')}</dd>
-              </div>
+              {project.client && (
+                <div>
+                  <dt className="text-xs font-bold uppercase tracking-widest text-muted-foreground">Cliente</dt>
+                  <dd className="mt-1 font-semibold">{project.client}</dd>
+                </div>
+              )}
+              {project.duration && (
+                <div>
+                  <dt className="text-xs font-bold uppercase tracking-widest text-muted-foreground">Duração</dt>
+                  <dd className="mt-1 font-semibold">{project.duration}</dd>
+                </div>
+              )}
+              {project.services.length > 0 && (
+                <div>
+                  <dt className="text-xs font-bold uppercase tracking-widest text-muted-foreground">Serviços</dt>
+                  <dd className="mt-1 font-semibold">{project.services.join(' · ')}</dd>
+                </div>
+              )}
             </dl>
           </header>
         </Reveal>
@@ -100,6 +106,32 @@ export default async function ProjectPage({ params }: Props) {
             <Image src={project.cover.src} alt={project.cover.alt} fill priority sizes="(min-width: 1024px) 1024px, 100vw" className="object-cover" />
           </div>
         </Reveal>
+
+        {project.websiteUrl && (
+          <Reveal className="mt-8">
+            <aside aria-labelledby="projeto-online" className="flex flex-col gap-4 rounded-3xl border border-primary/30 bg-primary/5 p-6 sm:flex-row sm:items-center sm:justify-between sm:p-8">
+              <div className="flex items-start gap-4">
+                <span className="flex size-12 shrink-0 items-center justify-center rounded-2xl bg-primary text-primary-foreground">
+                  <Globe2 aria-hidden />
+                </span>
+                <div className="min-w-0">
+                  <h2 id="projeto-online" className="text-xl font-black">
+                    Veja este projeto online
+                  </h2>
+                  <p className="mt-1 text-muted-foreground">Explore o resultado final, tal como os clientes de {project.title} o veem.</p>
+                  <a href={project.websiteUrl} target="_blank" rel="noopener noreferrer" className="mt-2 inline-block max-w-full truncate rounded-sm font-semibold text-primary underline-offset-4 hover:underline">
+                    {project.websiteUrl.replace(/^https?:\/\//i, '').replace(/\/$/, '')}
+                    <span className="sr-only"> (abre num novo separador)</span>
+                  </a>
+                </div>
+              </div>
+              <Button render={<a href={project.websiteUrl} target="_blank" rel="noopener noreferrer" />} nativeButton={false} size="lg" className="h-12 shrink-0 rounded-full px-7 text-base">
+                Visitar o site <ArrowUpRight data-icon="inline-end" aria-hidden />
+                <span className="sr-only"> (abre num novo separador)</span>
+              </Button>
+            </aside>
+          </Reveal>
+        )}
 
         <div className="mt-20 grid gap-16">
           <Reveal>
@@ -128,6 +160,7 @@ export default async function ProjectPage({ params }: Props) {
                 ))}
               </div>
               <div className="mt-8 grid gap-8 md:grid-cols-[1.4fr_1fr]">
+                {project.features.length > 0 && (
                 <ul className="grid gap-3">
                   {project.features.map((feature) => (
                     <li key={feature} className="flex items-start gap-3">
@@ -136,6 +169,8 @@ export default async function ProjectPage({ params }: Props) {
                     </li>
                   ))}
                 </ul>
+                )}
+                {project.stack.length > 0 && (
                 <div>
                   <h3 className="text-sm font-bold uppercase tracking-widest text-muted-foreground">Tecnologias</h3>
                   <ul className="mt-3 flex flex-wrap gap-2">
@@ -148,10 +183,12 @@ export default async function ProjectPage({ params }: Props) {
                     ))}
                   </ul>
                 </div>
+                )}
               </div>
             </section>
           </Reveal>
 
+          {project.gallery.length > 0 && (
           <section aria-labelledby="galeria">
             <h2 id="galeria" className="sr-only">
               Galeria do projeto
@@ -168,13 +205,16 @@ export default async function ProjectPage({ params }: Props) {
               ))}
             </ul>
           </section>
+          )}
 
+          {(project.results.length > 0 || project.roi) && (
           <Reveal>
             <section aria-labelledby="resultados" className="rounded-3xl bg-primary p-8 text-primary-foreground sm:p-12">
               <p className="mb-3 text-sm font-bold uppercase tracking-[0.18em]">03</p>
               <h2 id="resultados" className={sectionTitle}>
                 Resultados &amp; ROI
               </h2>
+              {project.results.length > 0 && (
               <ul className="mt-8 grid gap-6 sm:grid-cols-3">
                 {project.results.map((result) => (
                   <li key={result.label} className="rounded-2xl bg-background/15 p-6">
@@ -183,12 +223,16 @@ export default async function ProjectPage({ params }: Props) {
                   </li>
                 ))}
               </ul>
+              )}
+              {project.roi && (
               <p className="mt-8 flex max-w-3xl items-start gap-3 text-lg leading-8">
                 <TrendingUp className="mt-1.5 shrink-0" aria-hidden />
                 {project.roi}
               </p>
+              )}
             </section>
           </Reveal>
+          )}
         </div>
 
         <Reveal>

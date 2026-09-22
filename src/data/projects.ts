@@ -1,54 +1,56 @@
 import type { Project } from '@/lib/content/schema'
 
+/** Imagens do case Frisos Pneus, no Storage do Supabase (bucket público site-media). */
+const FRISOS_MEDIA = 'https://tdyoddidwfpaphbnbehf.supabase.co/storage/v1/object/public/site-media/projects/frisos-pneus'
+
 const unsplash = (id: string, w = 1600) =>
   `https://images.unsplash.com/photo-${id}?auto=format&fit=crop&w=${w}&q=80`
 
 /**
- * ATENÇÃO: conteúdo ilustrativo. Apenas o "-30% de tempo administrativo" do
- * DataClinic veio do mock original — substituir textos, métricas e imagens
- * pelos dados reais de cada cliente antes de publicar.
+ * ATENÇÃO: o case Frisos Pneus é REAL (cliente e site existentes). Os restantes são ilustrativos:
+ * apenas o "-30% de tempo administrativo" do DataClinic veio do mock original — substituir
+ * textos, métricas e imagens pelos dados reais de cada cliente antes de publicar.
  */
 export const defaultProjects: Project[] = [
   {
-    slug: 'autocenter-pro',
+    slug: 'frisos-pneus',
     published: true,
-    title: 'AutoCenter Pro',
-    tag: 'Oficina Mecânica',
-    summary: 'Sistema de agendamento e histórico de reparos com aviso automático via WhatsApp.',
-    cover: { src: unsplash('1487754180451-c456f719a1fc'), alt: 'Componentes de motor numa oficina mecânica' },
+    websiteUrl: 'https://frisospneus.pt',
+    title: 'Frisos Pneus',
+    tag: 'Pneus & Assistência Automóvel',
+    summary: 'Website para uma oficina de pneus e reboque 24h em Lisboa, pensado para quem precisa de ajuda rápida: ligar, agendar e chegar.',
+    cover: { src: `${FRISOS_MEDIA}/oficina.webp`, alt: 'Interior da oficina Frisos Pneus com pneus em stock, equipamento de montagem e elevador' },
     gallery: [
-      { src: unsplash('1486262715619-67b85e0b08d3'), alt: 'Detalhe de um motor durante uma revisão' },
-      { src: unsplash('1517245386807-bb43f82c33c4'), alt: 'Reunião de equipa a rever o painel de agendamentos' },
-      { src: unsplash('1460925895917-afdab827c52f'), alt: 'Painel com indicadores de ocupação da oficina' },
+      { src: `${FRISOS_MEDIA}/montagem.webp`, alt: 'Mecânico de luvas laranja a montar um pneu Continental numa máquina de pneus' },
+      { src: `${FRISOS_MEDIA}/diagnostico.webp`, alt: 'Técnico a usar um tablet de diagnóstico eletrónico dentro de um automóvel' },
+      { src: `${FRISOS_MEDIA}/logo.webp`, alt: 'Logótipo da Frisos Pneus — Assistência e Eficiência' },
     ],
-    client: 'Oficina multimarca (PME)',
-    duration: '10 semanas',
-    services: ['Sistema Web sob medida', 'Automação WhatsApp'],
-    stack: ['Next.js', 'PostgreSQL', 'WhatsApp Business API'],
+    client: 'Frisos Pneus · São João da Talha, Lisboa',
+    duration: '',
+    services: ['Website institucional', 'Agendamento e contacto direto', 'SEO local'],
+    stack: [],
     challenge: [
-      'A oficina geria marcações em papel e mensagens soltas de WhatsApp. Havia sobreposição de horários, clientes que esqueciam a revisão e nenhum histórico centralizado dos veículos.',
-      'Cada ordem de serviço dependia da memória da equipa, o que gerava retrabalho, atrasos na entrega e perda de receita recorrente.',
+      'A Frisos Pneus tem um diferencial forte: oficina aberta até à meia-noite, reboque 24 horas e atendimento sem marcação. Mas quem precisa de ajuda urgente procura no telemóvel e decide em segundos.',
+      'Era preciso comunicar depressa o que a oficina faz, onde fica e como falar com ela, transmitindo a confiança de uma equipa que resolve quando o resto fecha.',
     ],
     solution: [
-      'Desenvolvemos um sistema web com agenda por bancada, ficha digital por veículo e histórico completo de reparações e peças aplicadas.',
-      'Integrámos a API do WhatsApp para confirmar marcações, avisar quando o veículo está pronto e lembrar automaticamente revisões periódicas.',
+      'Criámos um website rápido e direto, com o contacto de urgência sempre à vista, o botão para agendar serviço e a lista completa de serviços: pneus novos e usados, manutenção rápida, diagnóstico eletrónico e reboque 24h.',
+      'Mostrámos a oficina, o equipamento e a equipa a trabalhar, e reunimos as avaliações dos clientes para dar confiança antes do primeiro contacto. A otimização para pesquisa local ajuda quem procura pneus ou reboque perto de São João da Talha a encontrar a oficina.',
     ],
     features: [
-      'Agenda por bancada com deteção de conflitos',
-      'Histórico de reparações por matrícula',
-      'Avisos automáticos via WhatsApp',
-      'Orçamentos e ordens de serviço digitais',
+      'Contacto de urgência e agendamento em destaque',
+      'Serviços: pneus, manutenção rápida, diagnóstico e reboque 24h',
+      'Galeria da oficina e do trabalho da equipa',
+      'Avaliações de clientes em destaque',
+      'Horário e morada de fácil acesso',
     ],
-    results: [
-      { metric: '-60%', label: 'faltas a marcações' },
-      { metric: '+25%', label: 'revisões recorrentes' },
-      { metric: '8 h', label: 'poupadas por semana em administrativo' },
-    ],
-    roi: 'Retorno do investimento estimado em menos de 5 meses, através da redução de faltas e do aumento de revisões recorrentes.',
+    results: [],
+    roi: '',
   },
   {
     slug: 'gastroflow',
     published: true,
+    websiteUrl: '',
     title: 'GastroFlow',
     tag: 'Restauração',
     summary: 'Menu digital integrado ao PDV e programa de fidelização para clientes recorrentes.',
@@ -86,6 +88,7 @@ export const defaultProjects: Project[] = [
   {
     slug: 'dataclinic',
     published: true,
+    websiteUrl: '',
     title: 'DataClinic',
     tag: 'Clínica/Serviços',
     summary: 'Dashboard financeiro e de agendamentos que reduziu o tempo administrativo em 30%.',
@@ -123,6 +126,7 @@ export const defaultProjects: Project[] = [
   {
     slug: 'retailhub',
     published: true,
+    websiteUrl: '',
     title: 'RetailHub',
     tag: 'Comércio',
     summary: 'Loja online sincronizada com o stock físico e faturação certificada num único painel.',
@@ -160,6 +164,7 @@ export const defaultProjects: Project[] = [
   {
     slug: 'fitbook',
     published: true,
+    websiteUrl: '',
     title: 'FitBook',
     tag: 'Ginásios & Bem-estar',
     summary: 'App de reservas de aulas e gestão de mensalidades com lembretes automáticos.',
@@ -197,6 +202,7 @@ export const defaultProjects: Project[] = [
   {
     slug: 'imogest',
     published: true,
+    websiteUrl: '',
     title: 'ImoGest',
     tag: 'Imobiliário',
     summary: 'CRM de imóveis e leads com portal de propostas para clientes e proprietários.',
@@ -234,6 +240,7 @@ export const defaultProjects: Project[] = [
   {
     slug: 'logitrack',
     published: true,
+    websiteUrl: '',
     title: 'LogiTrack',
     tag: 'Logística',
     summary: 'Controlo de armazém e encomendas com leitura de códigos e painel de expedição.',

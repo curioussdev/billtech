@@ -168,6 +168,13 @@ export const projectSchema = z.object({
   summary: z.string().trim().min(10).max(300),
   cover: imageSchema,
   gallery: z.array(imageSchema).max(8),
+  /** Endereço do projeto online (site do cliente). Vazio = sem link. */
+  websiteUrl: z
+    .string()
+    .trim()
+    .max(500)
+    .refine((v) => v === '' || /^https?:\/\//i.test(v), 'Use um link http(s)://')
+    .default(''),
   client: text,
   duration: text,
   services: z.array(text.min(1)).max(10),
