@@ -1,5 +1,7 @@
 import type { Metadata } from 'next'
-import { FlaskConical } from 'lucide-react'
+import Link from 'next/link'
+import { FlaskConical, NotebookText } from 'lucide-react'
+import { Button } from '@/components/ui/button'
 import { ChartCard } from '@/components/admin/dashboard/chart-card'
 import { ColdCallsPaceCard, PipelineCard, RevenueMonthCard, WinRateCard } from '@/components/admin/crm/kpi-cards'
 import { LossReasonsDonut, ProspectingLineChart, RevenueByNicheChart, SalesFunnelChart } from '@/components/admin/crm/charts'
@@ -13,9 +15,15 @@ export default async function CrmPage() {
 
   return (
     <div className="mx-auto grid max-w-7xl gap-6">
-      <div>
-        <h1 className="text-3xl font-black tracking-tight">Escritório Virtual</h1>
-        <p className="mt-1 text-muted-foreground">Centro de comando de vendas: leads, follow-up, cold calls e metas, num só lugar.</p>
+      <div className="flex flex-wrap items-start justify-between gap-3">
+        <div>
+          <h1 className="text-3xl font-black tracking-tight">Escritório Virtual</h1>
+          <p className="mt-1 text-muted-foreground">Centro de comando de vendas: leads, follow-up, cold calls e metas, num só lugar.</p>
+        </div>
+        <Button render={<Link href="/admin/crm/interacoes" />} nativeButton={false} variant="outline" size="sm">
+          <NotebookText className="size-4" aria-hidden />
+          Histórico de interações
+        </Button>
       </div>
 
       <p role="note" className="flex items-start gap-2 rounded-lg border border-amber-500/40 bg-amber-500/10 px-3 py-2 text-sm text-amber-900 dark:text-amber-200">

@@ -17,9 +17,14 @@ import {
 } from '@dnd-kit/core'
 import { CalendarClock, CheckCircle2, GripVertical, User, XCircle } from 'lucide-react'
 import { moveLead } from '@/actions/pipeline'
+import { useToast } from '@/components/admin/crm/toast'
+import { LostDealDialog } from '@/components/admin/crm/lost-deal-dialog'
+import { WinDealDialog, type WinDealPayload } from '@/components/admin/crm/win-deal-dialog'
 import { daysInStage, funnelMetrics } from '@/lib/admin/business'
 import { formatEUR, formatPct, leadStageLabels, sectorLabels } from '@/lib/admin/format'
+import { lossReasonLabels } from '@/lib/crm/labels'
 import { cn } from '@/lib/utils'
+import type { LossReason } from '@/types/crm'
 import { LEAD_STAGES, type Lead, type LeadStage } from '@/types/lead'
 
 const stageStyles: Record<LeadStage, string> = {
@@ -127,6 +132,8 @@ export function PipelineBoard({ initialLeads, nowIso, ltv, acquisitionSpend }: {
   const [leads, setLeads] = useState(initialLeads)
   const [activeId, setActiveId] = useState<string | null>(null)
   const [announcement, setAnnouncement] = useState('')
+  const [pendingClose, setPendingClose] = useState<{ leadId: string; leadLabel: string; stage: 'ganho' | 'perdido' } | null>(null)
+  const { push } = useToast()
 
   const sensors = useSensors(
     useSensor(PointerSensor, { activationConstraint: { distance: 6 } }),
@@ -153,10 +160,40 @@ export function PipelineBoard({ initialLeads, nowIso, ltv, acquisitionSpend }: {
     }
   }
 
+  // Ganho/Perdido são etapas terminais: exigem confirmação (mini-form ou motivo) antes de mover.
+  // Enquanto o modal está aberto o cartão fica na coluna original (só mutamos `leads` ao confirmar).
+  function requestStageChange(id: string, stage: LeadStage) {
+    const lead = leads.find((l) => l.id === id)
+    if (!lead || lead.stage === stage) return
+    if (stage === 'ganho' || stage === 'perdido') {
+      setPendingClose({ leadId: id, leadLabel: lead.company, stage })
+      return
+    }
+    void move(id, stage)
+  }
+
+  function confirmWin(payload: WinDealPayload) {
+    if (!pendingClose) return
+    const { leadId, leadLabel } = pendingClose
+    setLeads((all) => all.map((l) => (l.id === leadId ? { ...l, stage: 'ganho', stageEnteredAt: now.toISOString(), projectName: payload.projectName, projectType: payload.projectType, estimatedValue: payload.value } : l)))
+    setAnnouncement(`${leadLabel} movido para Ganho.`)
+    push(`Negócio ganho: ${leadLabel} — ${formatEUR(payload.value)}.`, 'success')
+    setPendingClose(null)
+  }
+
+  function confirmLoss(reason: LossReason) {
+    if (!pendingClose) return
+    const { leadId, leadLabel } = pendingClose
+    setLeads((all) => all.map((l) => (l.id === leadId ? { ...l, stage: 'perdido', stageEnteredAt: now.toISOString(), lossReason: reason } : l)))
+    setAnnouncement(`${leadLabel} movido para Perdido.`)
+    push(`Negócio perdido: ${leadLabel} (${lossReasonLabels[reason]}).`, 'error')
+    setPendingClose(null)
+  }
+
   const onDragStart = (e: DragStartEvent) => setActiveId(String(e.active.id))
   const onDragEnd = (e: DragEndEvent) => {
     setActiveId(null)
-    if (e.over && (LEAD_STAGES as readonly string[]).includes(String(e.over.id))) void move(String(e.active.id), e.over.id as LeadStage)
+    if (e.over && (LEAD_STAGES as readonly string[]).includes(String(e.over.id))) requestStageChange(String(e.active.id), e.over.id as LeadStage)
   }
 
   const nameOf = (id: string | number) => leads.find((l) => l.id === id)?.company ?? 'lead'
@@ -192,7 +229,7 @@ export function PipelineBoard({ initialLeads, nowIso, ltv, acquisitionSpend }: {
         <div className="-mx-4 overflow-x-auto px-4 pb-4 sm:-mx-8 sm:px-8">
           <div className="flex gap-4">
             {LEAD_STAGES.map((stage) => (
-              <Column key={stage} stage={stage} leads={byStage[stage]} now={now} onMove={move} />
+              <Column key={stage} stage={stage} leads={byStage[stage]} now={now} onMove={requestStageChange} />
             ))}
           </div>
         </div>
@@ -202,6 +239,16 @@ export function PipelineBoard({ initialLeads, nowIso, ltv, acquisitionSpend }: {
       <div role="status" aria-live="polite" className="text-sm font-medium text-primary">
         {announcement}
       </div>
+
+      <WinDealDialog
+        open={pendingClose?.stage === 'ganho'}
+        leadId={pendingClose?.leadId ?? ''}
+        leadLabel={pendingClose?.leadLabel ?? ''}
+        defaultValue={pendingClose ? (leads.find((l) => l.id === pendingClose.leadId)?.estimatedValue ?? 0) : 0}
+        onClose={() => setPendingClose(null)}
+        onConfirm={confirmWin}
+      />
+      <LostDealDialog open={pendingClose?.stage === 'perdido'} leadId={pendingClose?.leadId ?? ''} leadLabel={pendingClose?.leadLabel ?? ''} onClose={() => setPendingClose(null)} onConfirm={confirmLoss} />
     </div>
   )
 }

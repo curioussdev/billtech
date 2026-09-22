@@ -9,6 +9,7 @@ import {
   LifeBuoy,
   LayoutDashboard,
   MessageSquareQuote,
+  NotebookText,
   ScrollText,
   Send,
   Search,
@@ -64,7 +65,8 @@ export const adminNav: NavGroup[] = [
   {
     label: 'Negócio',
     items: [
-      { title: 'Escritório Virtual', href: '/admin/crm', icon: Gauge },
+      { title: 'Escritório Virtual', href: '/admin/crm', icon: Gauge, exact: true },
+      { title: 'Histórico de Interações', href: '/admin/crm/interacoes', icon: NotebookText },
       { title: 'Enviar mensagens', href: '/admin/comunicacoes', icon: Send },
       { title: 'Pedidos de clientes', href: '/admin/pedidos', icon: LifeBuoy, badge: 'requests' },
       { title: 'Receita & Projetos', href: '/admin/revenue', icon: Wallet },

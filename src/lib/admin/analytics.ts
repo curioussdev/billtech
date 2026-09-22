@@ -5,7 +5,7 @@ import { MOCK_NOW, mockProjects } from '@/data/mock/projects'
 import { isSupabaseConfigured } from '@/lib/supabase/config'
 import { createAdminClient } from '@/lib/supabase/server'
 import type { DashboardOverview, MonthlyRevenuePoint, OnlinePage, PageStat, RealtimeUsers, SourceStat, TimeSeriesPoint } from '@/types/analytics'
-import type { Goal, Interaction } from '@/types/crm'
+import type { DealProjectType, Goal, Interaction, LossReason } from '@/types/crm'
 import type { Lead, Meeting } from '@/types/lead'
 import { PROJECT_STATUSES, SECTORS, type ClientProject, type ProjectStatus } from '@/types/project'
 
@@ -60,6 +60,24 @@ export async function listGoals(): Promise<Goal[]> {
     console.error('[crm] leitura de goals falhou; a usar dados de demonstração:', error)
     return mockGoals
   }
+}
+
+type LeadRow = {
+  id: string
+  contact_name: string
+  company: string
+  sector: Lead['sector']
+  estimated_value: number
+  stage: Lead['stage']
+  channel: Lead['channel']
+  stage_entered_at: string
+  created_at: string
+  owner: string
+  follow_ups: number
+  first_response_hours: number | null
+  project_name: string | null
+  project_type: DealProjectType | null
+  loss_reason: LossReason | null
 }
 
 const isLive = () => isSupabaseConfigured && Boolean(process.env.SUPABASE_SERVICE_ROLE_KEY)
@@ -120,8 +138,38 @@ export async function listProjects(): Promise<ClientProject[]> {
   return mockProjects
 }
 
+/**
+ * Leads/Pipeline: lê a tabela real `leads`; sem base de dados (ou ainda por seedar), cai nos dados de
+ * demonstração. Ver nota em `supabase/007_leads.sql` — é o que fecha o hiato de "atualizar a página
+ * volta a mostrar os dados de exemplo" no Ganho/Perdido do Pipeline.
+ */
 export async function listLeads(): Promise<Lead[]> {
-  return mockLeads
+  if (!isLive()) return mockLeads
+  try {
+    const { data, error } = await createAdminClient().from('leads').select('*').order('created_at', { ascending: false })
+    if (error) throw error
+    if (data.length === 0) return mockLeads // tabela ainda vazia (migração por seedar): mostra os de demonstração
+    return (data as LeadRow[]).map((r) => ({
+      id: r.id,
+      contactName: r.contact_name,
+      company: r.company,
+      sector: r.sector,
+      estimatedValue: r.estimated_value,
+      stage: r.stage,
+      channel: r.channel,
+      stageEnteredAt: r.stage_entered_at,
+      createdAt: r.created_at,
+      owner: r.owner,
+      followUps: r.follow_ups,
+      firstResponseHours: r.first_response_hours,
+      ...(r.project_name ? { projectName: r.project_name } : {}),
+      ...(r.project_type ? { projectType: r.project_type } : {}),
+      ...(r.loss_reason ? { lossReason: r.loss_reason } : {}),
+    }))
+  } catch (error) {
+    console.error('[crm] leitura de leads falhou; a usar dados de demonstração:', error)
+    return mockLeads
+  }
 }
 
 export async function listMeetings(): Promise<Meeting[]> {
