@@ -12,7 +12,6 @@ import {
   MessageSquareQuote,
   NotebookText,
   ScrollText,
-  Send,
   Search,
   Settings,
   Target,
@@ -31,6 +30,8 @@ export type NavItem = {
   badge?: 'requests'
   /** Corresponder apenas ao href exato (ex.: a home do admin) */
   exact?: boolean
+  /** Outros prefixos de rota que também contam como "aqui" (ex.: "Mensagens" cobre as recebidas E as enviadas, que ficam em /admin/comunicacoes). */
+  alsoActiveOn?: string[]
 }
 
 export type NavGroup = { label: string; items: NavItem[] }
@@ -68,7 +69,7 @@ export const adminNav: NavGroup[] = [
     items: [
       { title: 'Escritório Virtual', href: '/admin/crm', icon: Gauge, exact: true },
       { title: 'Histórico de Interações', href: '/admin/crm/interacoes', icon: NotebookText },
-      { title: 'Enviar mensagens', href: '/admin/comunicacoes', icon: Send },
+      { title: 'Mensagens', href: '/admin/mensagens', icon: Inbox, alsoActiveOn: ['/admin/comunicacoes'] },
       { title: 'Pedidos de clientes', href: '/admin/pedidos', icon: LifeBuoy, badge: 'requests' },
       { title: 'Receita & Projetos', href: '/admin/revenue', icon: Wallet },
       { title: 'Financeiro', href: '/admin/finance', icon: PiggyBank },
@@ -76,7 +77,6 @@ export const adminNav: NavGroup[] = [
       { title: 'Prospecção de Clientes', href: '/admin/prospecting', icon: Target },
       { title: 'Relatórios', href: '/admin/reports', icon: FileBarChart },
       { title: 'Clientes', href: '/admin/clientes', icon: Users },
-      { title: 'Mensagens', href: '/admin/mensagens', icon: Inbox },
     ],
   },
   {
@@ -91,8 +91,9 @@ export const adminNav: NavGroup[] = [
 /** O item "Hero & Seções" agrupa as secções de conteúdo, exceto as que têm entrada própria. */
 const OWN_ENTRY = ['/admin/conteudo/general', '/admin/conteudo/solutions']
 
-export function isActive(pathname: string, item: Pick<NavItem, 'href' | 'exact' | 'children'>) {
+export function isActive(pathname: string, item: Pick<NavItem, 'href' | 'exact' | 'children' | 'alsoActiveOn'>) {
   if (item.exact) return pathname === item.href
   if (item.children) return pathname.startsWith('/admin/conteudo/') && !OWN_ENTRY.some((p) => pathname.startsWith(p))
+  if (item.alsoActiveOn?.some((p) => pathname === p || pathname.startsWith(`${p}/`))) return true
   return pathname === item.href || pathname.startsWith(`${item.href}/`)
 }

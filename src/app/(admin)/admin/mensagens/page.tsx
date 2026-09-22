@@ -1,4 +1,5 @@
 import type { Metadata } from 'next'
+import { MessagesTabs } from '@/components/admin/layout/messages-tabs'
 import { Badge } from '@/components/ui/badge'
 import { createClient } from '@/lib/supabase/server'
 
@@ -11,7 +12,8 @@ export default async function MessagesAdminPage() {
 
   return (
     <div className="max-w-4xl">
-      <h1 className="text-3xl font-black tracking-tight">Mensagens</h1>
+      <MessagesTabs active="recebidas" />
+      <h1 className="text-3xl font-black tracking-tight">Mensagens recebidas</h1>
       <p className="mb-8 mt-2 text-muted-foreground">Pedidos recebidos pelo formulário e pela área de cliente (últimas 200).</p>
 
       {messages.length === 0 ? (

@@ -2,6 +2,7 @@ import type { Metadata } from 'next'
 import Link from 'next/link'
 import { Send } from 'lucide-react'
 import { Forbidden } from '@/components/admin/layout/forbidden'
+import { MessagesTabs } from '@/components/admin/layout/messages-tabs'
 import { Button } from '@/components/ui/button'
 import { getSuperAdminOrNull } from '@/lib/auth'
 import { formatDateTime } from '@/lib/portal/labels'
@@ -11,7 +12,13 @@ import type { Broadcast, EmailStatus } from '@/types/portal'
 export const metadata: Metadata = { title: 'Enviar mensagens' }
 
 export default async function BroadcastsPage() {
-  if (!(await getSuperAdminOrNull())) return <Forbidden what="O envio de mensagens aos clientes" />
+  if (!(await getSuperAdminOrNull()))
+    return (
+      <div className="mx-auto max-w-5xl">
+        <MessagesTabs active="enviadas" />
+        <Forbidden what="O envio de mensagens aos clientes" />
+      </div>
+    )
 
   const supabase = await createClient()
   const { data } = await supabase.from('broadcasts').select('*').order('created_at', { ascending: false }).limit(100)
@@ -31,6 +38,7 @@ export default async function BroadcastsPage() {
 
   return (
     <div className="mx-auto max-w-5xl">
+      <MessagesTabs active="enviadas" />
       <div className="flex flex-wrap items-start justify-between gap-4">
         <div>
           <h1 className="text-3xl font-black tracking-tight">Enviar mensagens</h1>
