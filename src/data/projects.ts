@@ -3,11 +3,15 @@ import type { Project } from '@/lib/content/schema'
 /** Imagens do case Frisos Pneus, no Storage do Supabase (bucket público site-media). */
 const FRISOS_MEDIA = 'https://tdyoddidwfpaphbnbehf.supabase.co/storage/v1/object/public/site-media/projects/frisos-pneus'
 
+/** Imagens do case O Petisqueiro (fotografias do próprio restaurante). */
+const PETISQUEIRO_MEDIA = 'https://tdyoddidwfpaphbnbehf.supabase.co/storage/v1/object/public/site-media/projects/petisqueiro'
+
 const unsplash = (id: string, w = 1600) =>
   `https://images.unsplash.com/photo-${id}?auto=format&fit=crop&w=${w}&q=80`
 
 /**
- * ATENÇÃO: o case Frisos Pneus é REAL (cliente e site existentes). Os restantes são ilustrativos:
+ * ATENÇÃO: os cases Frisos Pneus e O Petisqueiro são REAIS (clientes e sites existentes), e por isso
+ * não têm métricas nem ROI inventados. Os restantes são ilustrativos:
  * apenas o "-30% de tempo administrativo" do DataClinic veio do mock original — substituir
  * textos, métricas e imagens pelos dados reais de cada cliente antes de publicar.
  */
@@ -29,6 +33,7 @@ export const defaultProjects: Project[] = [
     duration: '',
     services: ['Website institucional', 'Agendamento e contacto direto', 'SEO local'],
     stack: [],
+    showStack: false,
     challenge: [
       'A Frisos Pneus tem um diferencial forte: oficina aberta até à meia-noite, reboque 24 horas e atendimento sem marcação. Mas quem precisa de ajuda urgente procura no telemóvel e decide em segundos.',
       'Era preciso comunicar depressa o que a oficina faz, onde fica e como falar com ela, transmitindo a confiança de uma equipa que resolve quando o resto fecha.',
@@ -43,6 +48,51 @@ export const defaultProjects: Project[] = [
       'Galeria da oficina e do trabalho da equipa',
       'Avaliações de clientes em destaque',
       'Horário e morada de fácil acesso',
+    ],
+    results: [],
+    roi: '',
+  },
+  {
+    slug: 'petisqueiro',
+    published: true,
+    websiteUrl: 'https://petisqueiro-8h0inizse-jos-lopes-projects.vercel.app/',
+    title: 'O Petisqueiro',
+    tag: 'Restaurante · Cozinha luso-angolana',
+    summary:
+      'Website para um restaurante de cozinha luso-angolana em Lisboa, feito para mostrar a comida como ela é e levar quem procura sabores de casa até à mesa.',
+    cover: {
+      src: `${PETISQUEIRO_MEDIA}/prato-completo.webp`,
+      alt: 'Refeição servida em louça de barro: peixe com kizaca, funge e feijão de óleo de palma',
+    },
+    gallery: [
+      { src: `${PETISQUEIRO_MEDIA}/muamba-galinha.webp`, alt: 'Muamba de galinha com quiabos, servida numa panela de barro' },
+      { src: `${PETISQUEIRO_MEDIA}/muamba-ginguba.webp`, alt: 'Carne estufada com quiabos em molho de ginguba, em panela de barro' },
+      { src: `${PETISQUEIRO_MEDIA}/kizaca.webp`, alt: 'Kizaca — folhas de mandioca estufadas — numa panela de barro com tampa' },
+      { src: `${PETISQUEIRO_MEDIA}/peixe-grelhado.webp`, alt: 'Peixe grelhado inteiro com banana-pão e molho de cebola e salsa' },
+      { src: `${PETISQUEIRO_MEDIA}/panelas-barro.webp`, alt: 'Três panelas de barro com muamba de galinha, carne e kizaca' },
+      { src: `${PETISQUEIRO_MEDIA}/mesa-posta.webp`, alt: 'Mesa posta com panelas de barro, farinha de mandioca, molho e vinho' },
+      { src: `${PETISQUEIRO_MEDIA}/peixe-kizaca.webp`, alt: 'Prato de peixe com kizaca e quiabos, com funge ao fundo' },
+      { src: `${PETISQUEIRO_MEDIA}/partilha-mesa.webp`, alt: 'Refeição partilhada à mesa, com as panelas de barro ao centro' },
+    ],
+    client: 'O Petisqueiro · Rua Quirino da Fonseca 24B, Arroios, Lisboa',
+    duration: '',
+    services: ['Website institucional', 'Menu online', 'Reservas e contacto direto', 'SEO local'],
+    stack: [],
+    showStack: false,
+    challenge: [
+      'O Petisqueiro é conhecido por quem já lá entrou: cozinha luso-angolana genuína, pratos de conforto como a moamba, a cachupa e as feijoadas, e um ambiente familiar que sabe a casa. Mas quem procura este tipo de comida em Lisboa procura no telemóvel e decide pela fotografia.',
+      'Sem presença online, o restaurante dependia do passa-palavra e de quem passava à porta, ficando de fora das pesquisas de quem anda à procura de comida angolana na zona da Alameda e do Areeiro.',
+    ],
+    solution: [
+      'Criámos um website simples e rápido, construído à volta da comida: fotografias reais dos pratos servidos nas panelas de barro, o menu sempre acessível e o contacto para reservar sempre à mão.',
+      'A morada, o horário e as indicações de como chegar ficaram em destaque, e o site foi otimizado para pesquisa local, para aparecer a quem procura cozinha angolana ou um almoço tradicional em Arroios.',
+    ],
+    features: [
+      'Menu com os pratos da casa e especialidades angolanas',
+      'Reserva e contacto direto em destaque',
+      'Galeria de fotografias reais dos pratos',
+      'Morada, horário e indicações de como chegar',
+      'Pensado primeiro para telemóvel',
     ],
     results: [],
     roi: '',
@@ -64,6 +114,7 @@ export const defaultProjects: Project[] = [
     duration: '8 semanas',
     services: ['Sistema Web sob medida', 'Integração PDV', 'Fidelização'],
     stack: ['Next.js', 'Supabase', 'Integração PDV via API'],
+    showStack: false,
     challenge: [
       'Menus em papel desatualizados, pedidos anotados à mão e nenhuma visibilidade sobre quais clientes voltavam ou o que consumiam.',
       'O controlo de desperdício era feito no fim do mês, tarde demais para corrigir compras e receitas.',
@@ -102,6 +153,7 @@ export const defaultProjects: Project[] = [
     duration: '12 semanas',
     services: ['Dashboards & BI', 'Sistema Web sob medida'],
     stack: ['Next.js', 'PostgreSQL', 'Gráficos customizados'],
+    showStack: false,
     challenge: [
       'Dados de faturação, marcações e faltas espalhados por folhas de cálculo e sistemas que não comunicavam entre si.',
       'A gestão gastava horas a consolidar relatórios mensais e decidia com informação já desatualizada.',
@@ -140,6 +192,7 @@ export const defaultProjects: Project[] = [
     duration: '11 semanas',
     services: ['E-commerce', 'Integração de stock', 'Faturação digital'],
     stack: ['Next.js', 'PostgreSQL', 'Stripe', 'API de faturação'],
+    showStack: false,
     challenge: [
       'O stock da loja física e da loja online era gerido em folhas separadas, o que causava vendas de artigos sem existências e devoluções.',
       'A faturação era feita à mão no fim do dia, com erros frequentes e sem visão do que vendia melhor.',
@@ -178,6 +231,7 @@ export const defaultProjects: Project[] = [
     duration: '9 semanas',
     services: ['App Mobile', 'Automação', 'Dashboards & BI'],
     stack: ['React Native', 'Supabase', 'Stripe', 'Notificações push'],
+    showStack: false,
     challenge: [
       'As reservas de aulas eram feitas por mensagem e as mensalidades controladas em papel, com muitos atrasos de pagamento.',
       'Sem dados de ocupação, a direção não sabia que aulas manter, nem que horários reforçar.',
@@ -216,6 +270,7 @@ export const defaultProjects: Project[] = [
     duration: '10 semanas',
     services: ['CRM sob medida', 'Portal de cliente', 'Automação'],
     stack: ['Next.js', 'PostgreSQL', 'Email e WhatsApp automáticos'],
+    showStack: false,
     challenge: [
       'Os contactos de interessados chegavam por vários canais e perdiam-se, sem registo de quem já tinha visitado cada imóvel.',
       'Propostas e documentos circulavam por email, com versões desencontradas e atrasos no fecho de negócio.',
@@ -254,6 +309,7 @@ export const defaultProjects: Project[] = [
     duration: '14 semanas',
     services: ['Sistema Web sob medida', 'App Mobile', 'Dashboards & BI'],
     stack: ['Next.js', 'PostgreSQL', 'Leitura de códigos por telemóvel'],
+    showStack: false,
     challenge: [
       'O armazém funcionava com listas impressas e contagens manuais, o que gerava enganos nas expedições e inventários demorados.',
       'A gestão só percebia atrasos nas entregas quando o cliente reclamava.',

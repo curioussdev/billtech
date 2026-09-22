@@ -179,6 +179,8 @@ export const projectSchema = z.object({
   duration: text,
   services: z.array(text.min(1)).max(10),
   stack: z.array(text.min(1)).max(15),
+  /** Secção "Tecnologias" da página do case. Opcional: por omissão fica oculta (clientes não precisam de ver a stack técnica). */
+  showStack: z.boolean().default(false),
   challenge: paragraphs,
   solution: paragraphs,
   features: z.array(text.min(1)).max(12),

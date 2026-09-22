@@ -170,7 +170,7 @@ export default async function ProjectPage({ params }: Props) {
                   ))}
                 </ul>
                 )}
-                {project.stack.length > 0 && (
+                {project.showStack && project.stack.length > 0 && (
                 <div>
                   <h3 className="text-sm font-bold uppercase tracking-widest text-muted-foreground">Tecnologias</h3>
                   <ul className="mt-3 flex flex-wrap gap-2">
