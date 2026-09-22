@@ -1,9 +1,10 @@
 import Link from 'next/link'
-import { ArrowRight, CalendarClock, Check } from 'lucide-react'
-import { ProjectStageBadge } from '@/components/portal/badges'
+import { ArrowRight, CalendarClock, Check, MessageSquareText, PencilLine, Receipt, TrendingUp } from 'lucide-react'
+import { DueBadge, ProjectStageBadge } from '@/components/portal/badges'
 import { formatDate, projectStageLabels } from '@/lib/portal/labels'
+import { dueSeverity } from '@/lib/portal/schedule'
 import { cn } from '@/lib/utils'
-import { PROJECT_STAGES, type PortalProject, type ProjectStage } from '@/types/portal'
+import { PROJECT_STAGES, type PortalProject, type ProjectEvent, type ProjectStage } from '@/types/portal'
 
 export function ProgressBar({ value, label }: { value: number; label: string }) {
   return (
@@ -45,11 +46,15 @@ export function ProjectStepper({ stage }: { stage: ProjectStage }) {
 }
 
 export function ProjectCard({ project }: { project: PortalProject }) {
+  const severity = dueSeverity(project)
   return (
     <Link href={`/area-cliente/projetos/${project.id}`} className="group flex h-full flex-col gap-4 rounded-2xl border border-border bg-card p-5 transition-colors hover:border-primary">
       <div className="flex items-start justify-between gap-3">
         <h3 className="text-lg font-bold leading-snug">{project.name}</h3>
-        <ProjectStageBadge stage={project.status} />
+        <span className="flex shrink-0 items-center gap-1.5">
+          <DueBadge severity={severity} />
+          <ProjectStageBadge stage={project.status} />
+        </span>
       </div>
       {project.description && <p className="line-clamp-2 text-sm text-muted-foreground">{project.description}</p>}
       <div className="mt-auto grid gap-3">
@@ -65,5 +70,36 @@ export function ProjectCard({ project }: { project: PortalProject }) {
         </div>
       </div>
     </Link>
+  )
+}
+
+const eventIcon: Record<ProjectEvent['kind'], React.ComponentType<{ className?: string; 'aria-hidden'?: boolean }>> = {
+  status: TrendingUp,
+  progress: TrendingUp,
+  due_date: CalendarClock,
+  nota: MessageSquareText,
+  faturacao: Receipt,
+}
+
+/** Histórico de atividade do projeto — o "porquê" por trás da etapa atual, não só o estado presente. */
+export function ProjectTimeline({ events }: { events: ProjectEvent[] }) {
+  if (events.length === 0) {
+    return <p className="rounded-xl border border-dashed border-border p-4 text-sm text-muted-foreground">Ainda sem atividade registada neste projeto.</p>
+  }
+  return (
+    <ol className="grid gap-4 border-l border-border pl-5">
+      {events.map((event) => {
+        const Icon = eventIcon[event.kind] ?? PencilLine
+        return (
+          <li key={event.id} className="relative">
+            <span className="absolute -left-[1.65rem] top-0.5 flex size-5 items-center justify-center rounded-full bg-primary/10 text-primary ring-4 ring-background">
+              <Icon className="size-3" aria-hidden />
+            </span>
+            <p className="text-sm leading-6">{event.message}</p>
+            <time className="text-xs text-muted-foreground">{formatDate(event.created_at)}</time>
+          </li>
+        )
+      })}
+    </ol>
   )
 }

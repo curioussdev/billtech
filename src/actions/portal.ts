@@ -6,10 +6,9 @@ import { z } from 'zod'
 import { logAudit } from '@/lib/audit'
 import { requireAdmin, requireSuperAdminForAction, requireUser } from '@/lib/auth'
 import { notifyAdminClientReply, notifyAdminNewRequest, notifyClientReply, notifyClientStatus } from '@/lib/portal/notify'
-import { requestStatusLabels } from '@/lib/portal/labels'
+import { OPEN_STATUSES, projectStageLabels, requestStatusLabels } from '@/lib/portal/labels'
 import { createAdminClient, createClient } from '@/lib/supabase/server'
-import { OPEN_STATUSES } from '@/lib/portal/labels'
-import { PROJECT_STAGES, REQUEST_PRIORITIES, REQUEST_STATUSES, REQUEST_TYPES, type PortalRequest } from '@/types/portal'
+import { PROJECT_STAGES, REQUEST_PRIORITIES, REQUEST_STATUSES, REQUEST_TYPES, type PortalRequest, type ProjectStage } from '@/types/portal'
 
 export type PortalFormState = {
   status: 'idle' | 'success' | 'error'
@@ -30,6 +29,24 @@ function fieldErrorsOf(error: z.ZodError) {
 }
 
 const HOUR_AGO = () => new Date(Date.now() - 3_600_000).toISOString()
+
+/**
+ * Liga os anexos já carregados (mas ainda sem mensagem) à mensagem que acabou de ser enviada.
+ * `attachmentIdsRaw` vem de um campo escondido do formulário, em JSON — inválido ou vazio é ignorado
+ * em silêncio (a mensagem já foi enviada; um anexo por ligar não deve fazer a resposta falhar). O
+ * `.eq('request_id', requestId)` impede ligar um anexo de outro pedido, mesmo que o id fosse forjado.
+ */
+async function linkPendingAttachments(db: ReturnType<typeof createAdminClient>, requestId: string, messageId: string, attachmentIdsRaw: string) {
+  let raw: unknown
+  try {
+    raw = JSON.parse(attachmentIdsRaw || '[]')
+  } catch {
+    return
+  }
+  const parsed = z.array(z.uuid()).max(10).safeParse(raw)
+  if (!parsed.success || parsed.data.length === 0) return
+  await db.from('request_attachments').update({ message_id: messageId }).eq('request_id', requestId).in('id', parsed.data).is('message_id', null)
+}
 
 // ─── Cliente ────────────────────────────────────────────────────────────────
 
@@ -99,8 +116,9 @@ export async function replyToRequest(_prev: PortalFormState, formData: FormData)
   const { count } = await db.from('request_messages').select('id', { count: 'exact', head: true }).eq('author_id', profile.id).gte('created_at', HOUR_AGO())
   if ((count ?? 0) >= 30) return { status: 'error', message: 'Enviou muitas mensagens numa hora. Aguarde um pouco.' }
 
-  const { error } = await db.from('request_messages').insert({ request_id: request.id, author_id: profile.id, author_role: 'client', body: parsed.data.body })
-  if (error) return { status: 'error', message: 'Não foi possível enviar a mensagem.' }
+  const { data: message, error } = await db.from('request_messages').insert({ request_id: request.id, author_id: profile.id, author_role: 'client', body: parsed.data.body }).select('id').single()
+  if (error || !message) return { status: 'error', message: 'Não foi possível enviar a mensagem.' }
+  await linkPendingAttachments(db, request.id, message.id, read(formData, 'attachmentIds'))
 
   // Responder a um pedido que aguardava o cliente retoma a análise; responder a um concluído reabre-o
   const status = request.status === 'aguarda_cliente' ? 'em_analise' : request.status === 'concluido' ? 'aberto' : request.status
@@ -127,12 +145,48 @@ export async function cancelRequest(formData: FormData) {
   revalidatePath('/area-cliente', 'layout')
 }
 
-/** Limpa o "por ler" do lado de quem abriu a conversa. */
-export async function markRequestRead(requestId: string, side: 'client' | 'admin') {
-  await createAdminClient()
+const satisfactionSchema = z.object({ requestId: z.uuid(), rating: z.coerce.number().int().min(1).max(5), comment: z.string().trim().max(500).optional() })
+
+export type SatisfactionResult = { ok: true } | { ok: false; message: string }
+
+/** Satisfação pós-pedido: só depois de "concluído", e só uma vez — não há como voltar a avaliar por cima. */
+export async function submitSatisfaction(input: unknown): Promise<SatisfactionResult> {
+  const profile = await requireUser()
+  const parsed = satisfactionSchema.safeParse(input)
+  if (!parsed.success) return { ok: false, message: 'Avaliação inválida.' }
+
+  const db = createAdminClient()
+  const { data: request } = await db.from('requests').select('id, status, satisfaction_rating, title').eq('id', parsed.data.requestId).eq('client_id', profile.id).maybeSingle()
+  if (!request) return { ok: false, message: 'Pedido não encontrado.' }
+  if (request.status !== 'concluido') return { ok: false, message: 'Só pode avaliar pedidos já concluídos.' }
+  if (request.satisfaction_rating !== null) return { ok: false, message: 'Já avaliou este pedido.' }
+
+  const { error } = await db
     .from('requests')
-    .update(side === 'client' ? { client_unread: false } : { admin_unread: false })
-    .eq('id', requestId)
+    .update({ satisfaction_rating: parsed.data.rating, satisfaction_comment: parsed.data.comment ?? '', satisfaction_at: new Date().toISOString() })
+    .eq('id', request.id)
+  if (error) return { ok: false, message: 'Não foi possível guardar a avaliação.' }
+
+  revalidatePath(`/area-cliente/pedidos/${request.id}`)
+  revalidatePath(`/admin/pedidos/${request.id}`)
+  return { ok: true }
+}
+
+/**
+ * Limpa o "por ler" do lado de quem abriu a conversa.
+ * Verifica sempre a sessão aqui dentro — os dois sítios que chamam isto já confirmavam o dono antes
+ * de chegar aqui, mas uma Server Action é um endpoint por si só, alcançável diretamente; sem esta
+ * verificação, qualquer pessoa podia limpar o "por ler" de um pedido que não é seu.
+ */
+export async function markRequestRead(requestId: string, side: 'client' | 'admin') {
+  const db = createAdminClient()
+  if (side === 'admin') {
+    await requireAdmin()
+    await db.from('requests').update({ admin_unread: false }).eq('id', requestId)
+    return
+  }
+  const profile = await requireUser()
+  await db.from('requests').update({ client_unread: false }).eq('id', requestId).eq('client_id', profile.id)
 }
 
 const profileSchema = z.object({ fullName: z.string().trim().min(2, 'Indique o seu nome.').max(100), company: z.string().trim().max(120) })
@@ -164,8 +218,9 @@ export async function adminReply(_prev: PortalFormState, formData: FormData): Pr
   const { data: request } = await db.from('requests').select('*').eq('id', parsed.data.requestId).maybeSingle()
   if (!request) return { status: 'error', message: 'Pedido não encontrado.' }
 
-  const { error } = await db.from('request_messages').insert({ request_id: request.id, author_id: admin.id, author_role: 'admin', body: parsed.data.body, internal })
-  if (error) return { status: 'error', message: 'Não foi possível enviar.' }
+  const { data: message, error } = await db.from('request_messages').insert({ request_id: request.id, author_id: admin.id, author_role: 'admin', body: parsed.data.body, internal }).select('id').single()
+  if (error || !message) return { status: 'error', message: 'Não foi possível enviar.' }
+  await linkPendingAttachments(db, request.id, message.id, read(formData, 'attachmentIds'))
 
   const now = new Date().toISOString()
   const update: Record<string, unknown> = { last_message_at: now, updated_at: now }
@@ -230,15 +285,17 @@ const projectSchema = z.object({
   progress: z.coerce.number().int().min(0, '0 a 100').max(100, '0 a 100'),
   dueDate: z.union([z.iso.date(), z.literal('')]),
   url: z.string().trim().max(500).refine((v) => v === '' || /^https?:\/\//i.test(v), 'Use um link http(s)://'),
+  /** Nota de progresso opcional — fica no histórico de atividade do projeto, visível ao cliente. */
+  note: z.string().trim().max(500).optional(),
 })
 
 export async function saveClientProject(_prev: PortalFormState, formData: FormData): Promise<PortalFormState> {
   const admin = await requireAdmin()
-  const values = Object.fromEntries(['id', 'clientId', 'name', 'description', 'status', 'progress', 'dueDate', 'url'].map((k) => [k, read(formData, k)]))
+  const values = Object.fromEntries(['id', 'clientId', 'name', 'description', 'status', 'progress', 'dueDate', 'url', 'note'].map((k) => [k, read(formData, k)]))
   const parsed = projectSchema.safeParse(values)
   if (!parsed.success) return { status: 'error', message: 'Corrija os campos assinalados.', fieldErrors: fieldErrorsOf(parsed.error), values }
 
-  const { id, clientId, dueDate, ...rest } = parsed.data
+  const { id, clientId, dueDate, note, ...rest } = parsed.data
   const row = { client_id: clientId, name: rest.name, description: rest.description, status: rest.status, progress: rest.progress, due_date: dueDate || null, url: rest.url, updated_at: new Date().toISOString() }
 
   const supabase = await createClient()
@@ -248,7 +305,20 @@ export async function saveClientProject(_prev: PortalFormState, formData: FormDa
     : await supabase.from('client_projects').insert(row).select('id').single()
   if (error) return { status: 'error', message: `Não foi possível guardar: ${error.message}`, values }
 
-  await logAudit({ admin, action: id ? 'UPDATE_CLIENT_PROJECT' : 'CREATE_CLIENT_PROJECT', resource: 'projetos_cliente', targetId: saved?.id ?? id, details: { clientId, before, after: row } })
+  const projectId = saved?.id ?? id
+  await logAudit({ admin, action: id ? 'UPDATE_CLIENT_PROJECT' : 'CREATE_CLIENT_PROJECT', resource: 'projetos_cliente', targetId: projectId, details: { clientId, before, after: row } })
+
+  // Histórico de atividade: regista sozinho o que mudou, mais a nota manual do admin, se houver.
+  const events: { project_id: string; kind: 'status' | 'progress' | 'due_date' | 'nota'; message: string; created_by: string }[] = []
+  if (!before) {
+    events.push({ project_id: projectId, kind: 'status', message: `Projeto criado — etapa inicial: ${projectStageLabels[row.status]}.`, created_by: admin.id })
+  } else {
+    if (before.status !== row.status) events.push({ project_id: projectId, kind: 'status', message: `Etapa alterada de «${projectStageLabels[before.status as ProjectStage]}» para «${projectStageLabels[row.status]}».`, created_by: admin.id })
+    if (before.progress !== row.progress) events.push({ project_id: projectId, kind: 'progress', message: `Progresso atualizado para ${row.progress}%.`, created_by: admin.id })
+    if (before.due_date !== row.due_date) events.push({ project_id: projectId, kind: 'due_date', message: row.due_date ? `Nova data de entrega: ${row.due_date}.` : 'Data de entrega removida.', created_by: admin.id })
+  }
+  if (note) events.push({ project_id: projectId, kind: 'nota', message: note, created_by: admin.id })
+  if (events.length > 0) await supabase.from('client_project_events').insert(events)
 
   revalidatePath(`/admin/clientes/${clientId}`)
   revalidatePath('/area-cliente', 'layout')

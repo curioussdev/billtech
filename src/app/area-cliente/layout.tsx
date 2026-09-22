@@ -54,7 +54,7 @@ export default async function PortalLayout({ children }: { children: React.React
           </div>
         </div>
         <div className="mx-auto max-w-6xl px-4 lg:px-8">
-          <PortalNav unread={count ?? 0} unreadMessages={unreadMessages ?? 0} openInvoices={openInvoices ?? 0} />
+          <PortalNav clientId={profile.id} unread={count ?? 0} unreadMessages={unreadMessages ?? 0} openInvoices={openInvoices ?? 0} />
         </div>
       </header>
 

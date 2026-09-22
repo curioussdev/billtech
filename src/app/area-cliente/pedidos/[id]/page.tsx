@@ -2,11 +2,12 @@ import type { Metadata } from 'next'
 import Link from 'next/link'
 import { notFound } from 'next/navigation'
 import { z } from 'zod'
-import { ArrowLeft, CheckCircle2 } from 'lucide-react'
+import { ArrowLeft, CheckCircle2, Star } from 'lucide-react'
 import { cancelRequest, markRequestRead } from '@/actions/portal'
 import { PriorityBadge, RequestStatusBadge } from '@/components/portal/badges'
 import { ReplyForm } from '@/components/portal/forms'
 import { MessageThread } from '@/components/portal/message-thread'
+import { SatisfactionWidget } from '@/components/portal/satisfaction-widget'
 import { Button } from '@/components/ui/button'
 import { ConfirmButton } from '@/components/admin/editor/confirm-button'
 import { requireUser } from '@/lib/auth'
@@ -22,7 +23,7 @@ export default async function PortalRequestPage({ params, searchParams }: { para
   const profile = await requireUser()
   const data = await getRequestWithMessages(id)
   if (!data || data.request.client_id !== profile.id) notFound()
-  const { request, messages } = data
+  const { request, messages, attachments } = data
 
   // Ler a conversa limpa o "por ler" do cliente
   if (request.client_unread) await markRequestRead(request.id, 'client')
@@ -68,8 +69,22 @@ export default async function PortalRequestPage({ params, searchParams }: { para
       </header>
 
       <section aria-label="Conversa" className="rounded-2xl border border-border bg-card p-5 sm:p-6">
-        <MessageThread request={request} messages={messages} viewer="client" clientName={profile.full_name || profile.email} />
+        <MessageThread request={request} messages={messages} attachments={attachments} viewer="client" clientName={profile.full_name || profile.email} />
       </section>
+
+      {request.status === 'concluido' &&
+        (request.satisfaction_rating ? (
+          <p className="flex items-center gap-2 rounded-2xl border border-border bg-card p-4 text-sm text-muted-foreground">
+            <span className="flex items-center gap-0.5" aria-hidden>
+              {[1, 2, 3, 4, 5].map((n) => (
+                <Star key={n} className={n <= request.satisfaction_rating! ? 'size-4 fill-amber-400 text-amber-400' : 'size-4 text-muted-foreground'} />
+              ))}
+            </span>
+            A sua avaliação, obrigado.
+          </p>
+        ) : (
+          <SatisfactionWidget requestId={request.id} />
+        ))}
 
       {request.status === 'cancelado' ? (
         <p className="text-sm text-muted-foreground">Este pedido foi cancelado. Se ainda precisar, abra um novo pedido.</p>

@@ -3,7 +3,7 @@
 import { revalidatePath } from 'next/cache'
 import { z } from 'zod'
 import { logAudit } from '@/lib/audit'
-import { FORBIDDEN_MESSAGE, requireSuperAdminForAction } from '@/lib/auth'
+import { FORBIDDEN_MESSAGE, requireSuperAdminForAction, requireUser } from '@/lib/auth'
 import { getRecipient, sendEmailBatch } from '@/lib/contact-delivery'
 import { buildBroadcastEmail } from '@/lib/portal/notify'
 import { createAdminClient } from '@/lib/supabase/server'
@@ -109,7 +109,12 @@ export async function sendBroadcast(_prev: BroadcastState, formData: FormData): 
   return { status: failed && !sent ? 'error' : 'success', message: `Mensagem enviada a ${clients.length} ${clients.length === 1 ? 'cliente' : 'clientes'}.${emailNote}`, broadcastId: broadcast.id }
 }
 
-/** Marca um comunicado como lido pelo cliente (feito no servidor: o cliente não escreve nesta tabela). */
-export async function markBroadcastRead(broadcastId: string, clientId: string) {
-  await createAdminClient().from('broadcast_recipients').update({ read_at: new Date().toISOString() }).eq('broadcast_id', broadcastId).eq('client_id', clientId).is('read_at', null)
+/**
+ * Marca um comunicado como lido pelo cliente (feito no servidor: o cliente não escreve nesta tabela).
+ * `clientId` vem sempre da sessão, nunca do que for passado à função — caso contrário qualquer
+ * chamada direta a esta Server Action podia marcar como lido um comunicado de outro cliente.
+ */
+export async function markBroadcastRead(broadcastId: string) {
+  const profile = await requireUser()
+  await createAdminClient().from('broadcast_recipients').update({ read_at: new Date().toISOString() }).eq('broadcast_id', broadcastId).eq('client_id', profile.id).is('read_at', null)
 }

@@ -15,12 +15,12 @@ export default async function PortalMessagePage({ params }: { params: Promise<{ 
   const { id } = await params
   if (!z.uuid().safeParse(id).success) notFound()
 
-  const profile = await requireUser()
+  await requireUser()
   // A RLS só devolve comunicados em que este cliente é destinatário
   const message = (await getInbox()).find((m) => m.broadcast.id === id)
   if (!message) notFound()
 
-  if (!message.read_at) await markBroadcastRead(id, profile.id)
+  if (!message.read_at) await markBroadcastRead(id)
 
   const { broadcast } = message
   const replySubject = `Re: ${broadcast.subject}`.slice(0, 120)

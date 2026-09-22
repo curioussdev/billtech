@@ -2,6 +2,7 @@
 
 import Link from 'next/link'
 import { usePathname } from 'next/navigation'
+import { useClientPortalRealtime } from '@/hooks/use-realtime-portal'
 import { cn } from '@/lib/utils'
 
 const items = [
@@ -14,8 +15,9 @@ const items = [
   { href: '/area-cliente/conta', label: 'A minha conta' },
 ]
 
-export function PortalNav({ unread, unreadMessages, openInvoices }: { unread: number; unreadMessages: number; openInvoices: number }) {
+export function PortalNav({ clientId, unread, unreadMessages, openInvoices }: { clientId: string; unread: number; unreadMessages: number; openInvoices: number }) {
   const pathname = usePathname()
+  useClientPortalRealtime(clientId)
 
   const badgeFor = (href: string) => {
     if (href.endsWith('/pedidos')) return unread

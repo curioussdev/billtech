@@ -7,11 +7,13 @@ import { deleteClientProject } from '@/actions/portal'
 import { Button } from '@/components/ui/button'
 import { ClientAccessForm } from '@/components/admin/editor/client-access-form'
 import { ConfirmButton } from '@/components/admin/editor/confirm-button'
-import { ProjectStageBadge, RequestStatusBadge } from '@/components/portal/badges'
+import { DueBadge, ProjectStageBadge, RequestStatusBadge } from '@/components/portal/badges'
+import { DocumentsSection } from '@/components/portal/documents-section'
 import { ClientProjectForm } from '@/components/portal/forms'
 import { getSiteContent } from '@/lib/content/get'
 import { formatDate, requestTypeLabels } from '@/lib/portal/labels'
-import { getProjects, getRequests } from '@/lib/portal/queries'
+import { dueSeverity } from '@/lib/portal/schedule'
+import { getProjectDocuments, getProjects, getRequests } from '@/lib/portal/queries'
 import { createClient } from '@/lib/supabase/server'
 
 export const metadata: Metadata = { title: 'Ficha do cliente' }
@@ -32,6 +34,7 @@ export default async function AdminClientPage({ params }: { params: Promise<{ id
   ])
   const projects = allProjects.filter((p) => p.client_id === id)
   const requests = allRequests.filter((r) => r.client_id === id)
+  const documentsByProject = new Map(await Promise.all(projects.map(async (p) => [p.id, await getProjectDocuments(p.id)] as const)))
 
   return (
     <div className="mx-auto grid max-w-4xl gap-8">
@@ -60,12 +63,17 @@ export default async function AdminClientPage({ params }: { params: Promise<{ id
             <summary className="flex cursor-pointer list-none flex-wrap items-center justify-between gap-3 rounded-md">
               <span className="font-semibold">{p.name}</span>
               <span className="flex items-center gap-3">
+                <DueBadge severity={dueSeverity(p)} />
                 <ProjectStageBadge stage={p.status} />
                 <span className="text-sm tabular-nums text-muted-foreground">{p.progress}%</span>
               </span>
             </summary>
             <div className="mt-5 grid gap-6 border-t border-border pt-5">
               <ClientProjectForm clientId={id} project={p} />
+              <div>
+                <h3 className="mb-2 text-sm font-bold uppercase tracking-widest text-muted-foreground">Documentos</h3>
+                <DocumentsSection projectId={p.id} documents={documentsByProject.get(p.id) ?? []} isAdmin />
+              </div>
               <form action={deleteClientProject}>
                 <input type="hidden" name="id" value={p.id} />
                 <ConfirmButton message={`Apagar o projeto "${p.name}"? Os pedidos ligados ficam sem projeto.`} variant="ghost" size="sm" className="text-destructive">

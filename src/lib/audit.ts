@@ -36,6 +36,8 @@ export const AUDIT_ACTIONS = [
   'CREATE_INVOICE',
   'CREATE_DISCOUNT_CODE',
   'ADD_LOYALTY_POINTS',
+  'UPLOAD_PROJECT_DOCUMENT',
+  'DELETE_PROJECT_DOCUMENT',
 ] as const
 export type AuditAction = (typeof AUDIT_ACTIONS)[number]
 

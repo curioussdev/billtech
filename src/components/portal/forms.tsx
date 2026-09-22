@@ -1,8 +1,9 @@
 'use client'
 
-import { useActionState } from 'react'
+import { useActionState, useEffect, useRef, useState } from 'react'
 import { Loader2, Send } from 'lucide-react'
 import { adminReply, createRequest, replyToRequest, saveClientProject, updateProfile, updateRequestMeta, type PortalFormState } from '@/actions/portal'
+import { AttachmentUploader } from '@/components/portal/attachments'
 import { Button } from '@/components/ui/button'
 import { Input } from '@/components/ui/input'
 import { Label } from '@/components/ui/label'
@@ -115,14 +116,26 @@ export function NewRequestForm({ projects, defaultType, defaultProjectId, defaul
 
 export function ReplyForm({ requestId, variant, placeholder }: { requestId: string; variant: 'client' | 'admin'; placeholder?: string }) {
   const [state, action, pending] = useActionState(variant === 'admin' ? adminReply : replyToRequest, initial)
+  const formRef = useRef<HTMLFormElement>(null)
+  // Muda a cada envio com sucesso: remonta o AttachmentUploader, limpando os anexos já ligados à mensagem enviada.
+  const [uploaderKey, setUploaderKey] = useState(0)
+
+  useEffect(() => {
+    if (state.status === 'success') {
+      formRef.current?.reset()
+      setUploaderKey((k) => k + 1)
+    }
+    // eslint-disable-next-line react-hooks/exhaustive-deps -- só reage a novas submissões (identidade do state muda a cada action)
+  }, [state])
 
   return (
-    <form action={action} className="grid gap-3 rounded-2xl border border-border bg-card p-4">
+    <form ref={formRef} action={action} className="grid gap-3 rounded-2xl border border-border bg-card p-4">
       <input type="hidden" name="requestId" value={requestId} />
       <Label htmlFor={`body-${variant}`} className="sr-only">
         A sua mensagem
       </Label>
       <Textarea id={`body-${variant}`} name="body" required rows={4} maxLength={4000} placeholder={placeholder ?? 'Escreva a sua mensagem…'} className="text-base" />
+      <AttachmentUploader key={uploaderKey} requestId={requestId} />
       <div className="flex flex-wrap items-center justify-between gap-3">
         {variant === 'admin' ? (
           <label className="flex items-center gap-2 text-sm">
@@ -251,6 +264,11 @@ export function ClientProjectForm({ clientId, project }: { clientId: string; pro
         <Label htmlFor={`url-${idp}`}>Link do projeto / ambiente de testes (opcional)</Label>
         <Input id={`url-${idp}`} name="url" placeholder="https://…" defaultValue={v.url ?? project?.url} />
         <FieldError id={`url-${idp}`} message={errors.url} />
+      </div>
+      <div className="grid gap-2">
+        <Label htmlFor={`note-${idp}`}>Nota de progresso para o cliente (opcional)</Label>
+        <Textarea id={`note-${idp}`} name="note" rows={2} maxLength={500} placeholder="Ex.: Terminámos os testes de pagamento, a preparar o deploy." defaultValue={v.note} />
+        <p className="text-xs text-muted-foreground">Fica guardada no histórico de atividade, visível ao cliente. Mudanças de etapa, progresso e data ficam registadas sozinhas.</p>
       </div>
       <Submit pending={pending}>{project ? 'Guardar projeto' : 'Criar projeto'}</Submit>
       <Feedback state={state} />

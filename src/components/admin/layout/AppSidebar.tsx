@@ -23,10 +23,12 @@ import {
   SidebarSeparator,
   useSidebar,
 } from '@/components/ui/sidebar'
+import { useAdminRequestsRealtime } from '@/hooks/use-realtime-portal'
 
 export function AppSidebar({ email, unreadRequests }: { email: string; unreadRequests: number }) {
   const pathname = usePathname()
   const { isMobile, setOpenMobile } = useSidebar()
+  useAdminRequestsRealtime()
   // Em mobile a sidebar é uma gaveta: fecha ao navegar
   const closeOnNavigate = () => isMobile && setOpenMobile(false)
 

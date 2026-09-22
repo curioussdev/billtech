@@ -5,3 +5,5 @@ export const supabaseAnonKey = process.env.NEXT_PUBLIC_SUPABASE_ANON_KEY ?? ''
 export const isSupabaseConfigured = Boolean(supabaseUrl && supabaseAnonKey)
 
 export const MEDIA_BUCKET = 'site-media'
+/** Privado, ao contrário do MEDIA_BUCKET — anexos de pedidos podem ser sensíveis (prints, documentos). */
+export const CLIENT_ATTACHMENTS_BUCKET = 'client-attachments'

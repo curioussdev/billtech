@@ -2,7 +2,7 @@ import type { Metadata } from 'next'
 import Link from 'next/link'
 import { notFound } from 'next/navigation'
 import { z } from 'zod'
-import { ArrowLeft } from 'lucide-react'
+import { ArrowLeft, Star } from 'lucide-react'
 import { markRequestRead } from '@/actions/portal'
 import { PriorityBadge, RequestStatusBadge } from '@/components/portal/badges'
 import { ReplyForm, RequestMetaForm } from '@/components/portal/forms'
@@ -19,7 +19,7 @@ export default async function AdminRequestPage({ params }: { params: Promise<{ i
 
   const data = await getRequestWithMessages(id)
   if (!data) notFound()
-  const { request, messages } = data
+  const { request, messages, attachments } = data
 
   if (request.admin_unread) await markRequestRead(request.id, 'admin')
 
@@ -48,7 +48,7 @@ export default async function AdminRequestPage({ params }: { params: Promise<{ i
           </header>
 
           <section aria-label="Conversa" className="rounded-2xl border border-border bg-card p-5 sm:p-6">
-            <MessageThread request={request} messages={messages} viewer="admin" clientName={clientName} />
+            <MessageThread request={request} messages={messages} attachments={attachments} viewer="admin" clientName={clientName} />
           </section>
 
           <ReplyForm requestId={request.id} variant="admin" placeholder="Responda ao cliente (recebe também por email) ou marque como nota interna…" />
@@ -80,6 +80,17 @@ export default async function AdminRequestPage({ params }: { params: Promise<{ i
               <p className="mt-3 text-muted-foreground">
                 Projeto: <span className="font-medium text-foreground">{project.name}</span>
               </p>
+            )}
+            {request.satisfaction_rating && (
+              <div className="mt-3 border-t border-border pt-3">
+                <p className="mb-1 text-xs font-bold uppercase tracking-widest text-muted-foreground">Satisfação</p>
+                <span className="flex items-center gap-0.5" aria-label={`${request.satisfaction_rating} de 5 estrelas`}>
+                  {[1, 2, 3, 4, 5].map((n) => (
+                    <Star key={n} aria-hidden className={n <= request.satisfaction_rating! ? 'size-4 fill-amber-400 text-amber-400' : 'size-4 text-muted-foreground'} />
+                  ))}
+                </span>
+                {request.satisfaction_comment && <p className="mt-1 italic text-muted-foreground">"{request.satisfaction_comment}"</p>}
+              </div>
             )}
           </section>
         </aside>

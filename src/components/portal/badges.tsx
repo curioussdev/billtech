@@ -1,5 +1,7 @@
+import { AlertTriangle, Clock } from 'lucide-react'
 import { cn } from '@/lib/utils'
 import { priorityLabels, projectStageLabels, requestStatusLabels } from '@/lib/portal/labels'
+import type { DueSeverity } from '@/lib/portal/schedule'
 import type { ProjectStage, RequestPriority, RequestStatus } from '@/types/portal'
 
 const pill = 'inline-flex items-center gap-1.5 whitespace-nowrap rounded-full px-2.5 py-0.5 text-xs font-semibold'
@@ -38,6 +40,19 @@ const stageStyles: Record<ProjectStage, string> = {
 
 export function ProjectStageBadge({ stage, className }: { stage: ProjectStage; className?: string }) {
   return <span className={cn(pill, stageStyles[stage], className)}>{projectStageLabels[stage]}</span>
+}
+
+/** Aviso de prazo — só aparece quando há mesmo algo a assinalar (atrasado ou esta semana). */
+export function DueBadge({ severity, className }: { severity: DueSeverity; className?: string }) {
+  if (!severity) return null
+  const isLate = severity === 'atrasado'
+  const Icon = isLate ? AlertTriangle : Clock
+  return (
+    <span className={cn(pill, isLate ? 'bg-red-500/15 text-red-800 dark:text-red-300' : 'bg-amber-500/15 text-amber-900 dark:text-amber-300', className)}>
+      <Icon className="size-3" aria-hidden />
+      {isLate ? 'Atrasado' : 'Esta semana'}
+    </span>
+  )
 }
 
 /** Ponto "novo" com texto para leitores de ecrã (não depende só da cor). */

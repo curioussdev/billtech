@@ -1,11 +1,15 @@
+'use client'
+
 import { LockKeyhole } from 'lucide-react'
+import { AttachmentList } from '@/components/portal/attachments'
+import { useRealtimeMessages } from '@/hooks/use-realtime-portal'
 import { formatDateTime } from '@/lib/portal/labels'
 import { cn } from '@/lib/utils'
-import type { PortalRequest, RequestMessage } from '@/types/portal'
+import type { PortalRequest, RequestAttachment, RequestMessage } from '@/types/portal'
 
 type Viewer = 'client' | 'admin'
 
-function Bubble({ mine, author, time, internal, children }: { mine: boolean; author: string; time: string; internal?: boolean; children: React.ReactNode }) {
+function Bubble({ mine, author, time, internal, attachments, children }: { mine: boolean; author: string; time: string; internal?: boolean; attachments?: RequestAttachment[]; children: React.ReactNode }) {
   return (
     <li className={cn('flex flex-col gap-1', mine ? 'items-end' : 'items-start')}>
       <div className="flex items-center gap-2 text-xs text-muted-foreground">
@@ -24,13 +28,15 @@ function Bubble({ mine, author, time, internal, children }: { mine: boolean; aut
         )}
       >
         {children}
+        {attachments && attachments.length > 0 && <AttachmentList attachments={attachments} />}
       </div>
     </li>
   )
 }
 
-/** Conversa de um pedido: a descrição inicial é a primeira mensagem do cliente. */
-export function MessageThread({ request, messages, viewer, clientName }: { request: PortalRequest; messages: RequestMessage[]; viewer: Viewer; clientName: string }) {
+/** Conversa de um pedido: a descrição inicial é a primeira mensagem do cliente. Atualiza em direto via Realtime. */
+export function MessageThread({ request, messages: initialMessages, attachments: initialAttachments = [], viewer, clientName }: { request: PortalRequest; messages: RequestMessage[]; attachments?: RequestAttachment[]; viewer: Viewer; clientName: string }) {
+  const { messages, attachments } = useRealtimeMessages(request.id, initialMessages, initialAttachments)
   return (
     <ol className="grid gap-5" aria-label="Conversa do pedido">
       <Bubble mine={viewer === 'client'} author={viewer === 'client' ? 'Você' : clientName} time={formatDateTime(request.created_at)}>
@@ -41,7 +47,7 @@ export function MessageThread({ request, messages, viewer, clientName }: { reque
         const mine = viewer === 'client' ? fromClient : !fromClient
         const author = fromClient ? (viewer === 'client' ? 'Você' : clientName) : viewer === 'admin' ? 'BillTech (equipa)' : 'Equipa BillTech'
         return (
-          <Bubble key={m.id} mine={mine} author={author} time={formatDateTime(m.created_at)} internal={m.internal}>
+          <Bubble key={m.id} mine={mine} author={author} time={formatDateTime(m.created_at)} internal={m.internal} attachments={attachments.filter((a) => a.message_id === m.id)}>
             {m.body}
           </Bubble>
         )
