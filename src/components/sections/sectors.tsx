@@ -21,7 +21,7 @@ export function Sectors({ content }: { content: SiteContent['sectors'] }) {
                 <TabsTrigger
                   key={sector.value}
                   value={sector.value}
-                  className="h-auto flex-none justify-start rounded-xl border-border bg-muted px-5 py-4 text-left text-base data-active:bg-primary data-active:text-primary-foreground dark:data-active:bg-primary dark:data-active:text-primary-foreground"
+                  className="h-auto flex-none justify-start rounded-xl border-border bg-muted px-5 py-4 text-left text-base transition-colors hover:border-primary/40 data-active:bg-primary data-active:text-primary-foreground dark:data-active:bg-primary dark:data-active:text-primary-foreground"
                 >
                   {sector.title}
                 </TabsTrigger>

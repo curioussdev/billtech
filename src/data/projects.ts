@@ -6,12 +6,17 @@ const FRISOS_MEDIA = 'https://tdyoddidwfpaphbnbehf.supabase.co/storage/v1/object
 /** Imagens do case O Petisqueiro (fotografias do próprio restaurante). */
 const PETISQUEIRO_MEDIA = 'https://tdyoddidwfpaphbnbehf.supabase.co/storage/v1/object/public/site-media/projects/petisqueiro'
 
+/** Imagens do case Tapa Bucho (fotografias do próprio gastrobar). */
+const TAPA_BUCHO_MEDIA = 'https://tdyoddidwfpaphbnbehf.supabase.co/storage/v1/object/public/site-media/projects/tapa-bucho'
+
 const unsplash = (id: string, w = 1600) =>
   `https://images.unsplash.com/photo-${id}?auto=format&fit=crop&w=${w}&q=80`
 
 /**
- * ATENÇÃO: os cases Frisos Pneus e O Petisqueiro são REAIS (clientes e sites existentes), e por isso
- * não têm métricas nem ROI inventados. Os restantes são ilustrativos:
+ * ATENÇÃO: os cases Frisos Pneus, O Petisqueiro, Tapa Bucho e Maison Glow são REAIS (clientes e sites
+ * existentes), e por isso não têm métricas nem ROI inventados. O Maison Glow usa fotografias de stock
+ * (Unsplash), tal como o protótipo original do cliente — ainda não tem fotografias próprias do espaço
+ * ou da Vivian a trabalhar; substituir assim que existirem. Os restantes são ilustrativos:
  * apenas o "-30% de tempo administrativo" do DataClinic veio do mock original — substituir
  * textos, métricas e imagens pelos dados reais de cada cliente antes de publicar.
  */
@@ -92,6 +97,93 @@ export const defaultProjects: Project[] = [
       'Reserva e contacto direto em destaque',
       'Galeria de fotografias reais dos pratos',
       'Morada, horário e indicações de como chegar',
+      'Pensado primeiro para telemóvel',
+    ],
+    results: [],
+    roi: '',
+  },
+  {
+    slug: 'tapa-bucho',
+    published: true,
+    websiteUrl: 'https://tapabucho-953ozesub-abbisstore86-3308.vercel.app/',
+    title: 'Tapa Bucho',
+    tag: 'Restaurante · Gastrobar',
+    summary:
+      'Website para um gastrobar de referência no Bairro Alto, em Lisboa, pensado para mostrar os petiscos como protagonistas e converter quem navega em reserva.',
+    cover: {
+      src: `${TAPA_BUCHO_MEDIA}/sandes-assinatura.jpg`,
+      alt: 'Sandes assinatura do Tapa Bucho servida numa tábua de madeira com o logótipo do gastrobar',
+    },
+    gallery: [
+      { src: `${TAPA_BUCHO_MEDIA}/sala-interior.webp`, alt: 'Sala interior do Tapa Bucho, com parede de tijolo, candeeiros suspensos e balcão de bebidas' },
+      { src: `${TAPA_BUCHO_MEDIA}/esplanada.webp`, alt: 'Esplanada do Tapa Bucho ao final da tarde, com luzes decorativas e mesas postas' },
+      { src: `${TAPA_BUCHO_MEDIA}/mesa-partilhada.webp`, alt: 'Mesa cheia de petiscos para partilhar: croquetes, pimentos padrón, entrecosto e tártaro' },
+      { src: `${TAPA_BUCHO_MEDIA}/tartare-atum-presunto.webp`, alt: 'Tártaro de atum com presunto ibérico servido à parte, sobre a mesa de madeira' },
+      { src: `${TAPA_BUCHO_MEDIA}/croquetes.webp`, alt: 'Croquetes crocantes com molho, dispostos numa travessa comprida' },
+      { src: `${TAPA_BUCHO_MEDIA}/cogumelos-ovo.webp`, alt: 'Cogumelos grelhados com ovo escalfado numa tigela' },
+      { src: `${TAPA_BUCHO_MEDIA}/churros-sobremesa.webp`, alt: 'Churros polvilhados com açúcar, a serem mergulhados em creme de doce e chocolate' },
+      { src: `${TAPA_BUCHO_MEDIA}/vinho-cerveja-petiscos.webp`, alt: 'Brinde com vinho tinto e cerveja Estrella Damm, com pão e azeitonas à mesa' },
+    ],
+    client: 'Tapa Bucho Gastrobar · Bairro Alto, Lisboa',
+    duration: '',
+    services: ['Website institucional', 'Menu online', 'Reservas e contacto direto', 'SEO local'],
+    stack: [],
+    showStack: false,
+    challenge: [
+      'Nascido em 2012 e reinventado em 2018 como gastrobar, o Tapa Bucho junta a tradição do petisco português a uma cozinha mais criativa, num ambiente vibrante e pensado para a partilha. Mas num bairro tão concorrido como o Bairro Alto, é o site que decide se alguém entra ou segue para a porta ao lado.',
+      'Sem uma presença online à altura da experiência, o restaurante ficava dependente de quem passava à porta e do passa-palavra, perdendo quem pesquisa online antes de escolher onde jantar.',
+    ],
+    solution: [
+      'Construímos um website onde os próprios petiscos são o argumento de venda: fotografias reais dos pratos, o menu sempre à mão e o contacto para reservar em destaque, sem distrações.',
+      'A esplanada, o ambiente e a morada no coração do Bairro Alto ficaram em destaque, com otimização para pesquisa local — para aparecer a quem procura um gastrobar para petiscar e partilhar em Lisboa.',
+    ],
+    features: [
+      'Menu com os petiscos e pratos de assinatura da casa',
+      'Reserva e contacto direto em destaque',
+      'Galeria de fotografias reais dos pratos e do espaço',
+      'Morada, horário e indicações de como chegar',
+      'Pensado primeiro para telemóvel',
+    ],
+    results: [],
+    roi: '',
+  },
+  {
+    slug: 'maison-glow',
+    published: true,
+    websiteUrl: 'https://v0-maison-glow-prototype.vercel.app/',
+    title: 'Maison Glow',
+    tag: 'Estética & Massoterapia',
+    summary: 'Site de marcações para um espaço de estética e massoterapia, a apresentar os tratamentos de Vivian Rodrigues e a converter visitas em agendamentos por WhatsApp.',
+    cover: { src: unsplash('1570172619644-dfd03ed5d881'), alt: 'Tratamento facial de estética, mãos a aplicar produto no rosto' },
+    gallery: [
+      { src: unsplash('1600334129128-685c5582fd35', 800), alt: 'Massagem com pedras vulcânicas quentes nas costas' },
+      { src: unsplash('1515377905703-c4788e51af15', 800), alt: 'Esfoliação corporal com produtos naturais' },
+      { src: unsplash('1544161515-4ab6ce6db874', 800), alt: 'Massagem relaxante, técnica suave nas costas' },
+      { src: unsplash('1519823551278-64ac92734fb1', 800), alt: 'Massagem terapêutica direcionada a uma zona de tensão' },
+      { src: unsplash('1487412947147-5cebf100ffc2', 800), alt: 'Limpeza de pele facial' },
+      { src: unsplash('1540555700478-4be289fbecef', 800), alt: 'Ambiente calmo e relaxante de um espaço de estética' },
+      { src: unsplash('1507652313519-d4e9174996dd', 800), alt: 'Produtos naturais usados nos tratamentos' },
+      { src: unsplash('1552693673-1bf958298935', 800), alt: 'Sala de massagem aconchegante, preparada para uma sessão' },
+    ],
+    client: 'Maison Glow · Vivian Rodrigues, Esteticista e Massoterapeuta',
+    duration: '',
+    services: ['Website institucional', 'Catálogo de tratamentos', 'Agendamento por WhatsApp', 'SEO local'],
+    stack: [],
+    showStack: false,
+    challenge: [
+      'A Vivian Rodrigues construiu a sua reputação de esteticista e massoterapeuta sobretudo através das redes sociais, mas quem descobre o trabalho dela por lá não tem um sítio central onde ver todos os tratamentos, perceber duração e preço, e marcar sem trocar várias mensagens.',
+      'Sem um site próprio, cada novo pedido de marcação começava do zero — a explicar outra vez os mesmos tratamentos a quem já estava convencido a agendar.',
+    ],
+    solution: [
+      'Criámos um site de apresentação centrado nos seis tratamentos da casa — Tratamento Facial Glow, Massagem de Pedras Quentes, Esfoliação Corporal, Massagem Relaxante, Massagem Terapêutica e Limpeza de Pele — cada um com duração e descrição claras.',
+      'A marcação passou a ser um clique direto para o WhatsApp, com uma secção "Sobre" a apresentar a Vivian e as suas especialidades, e testemunhos reais de clientes a dar confiança a quem ainda não a conhece.',
+    ],
+    features: [
+      'Catálogo dos 6 tratamentos, com duração e descrição',
+      'Marcação direta por WhatsApp, sem formulários',
+      'Secção "Sobre" com as especialidades da Vivian',
+      'Testemunhos de clientes em destaque',
+      'Ligações diretas ao Instagram e TikTok',
       'Pensado primeiro para telemóvel',
     ],
     results: [],

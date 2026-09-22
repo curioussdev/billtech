@@ -19,7 +19,7 @@ export function Services({ content }: { content: SiteContent['services'] }) {
             return (
               <li key={`${item.title}-${index}`}>
                 <Reveal delay={(index % 4) * 0.08} className="h-full">
-                  <Card className="group h-full rounded-3xl border-border/70 bg-card transition-all duration-300 hover:-translate-y-1 hover:border-primary/40 hover:shadow-xl">
+                  <Card className="group h-full rounded-3xl bg-card ring-1 ring-border/70 transition-all duration-300 hover:shadow-xl hover:ring-primary/50 motion-safe:hover:-translate-y-1 motion-safe:hover:scale-[1.02]">
                     <CardHeader>
                       <div className="mb-5 flex size-12 items-center justify-center rounded-2xl bg-primary/10 text-primary transition-colors group-hover:bg-primary group-hover:text-primary-foreground">
                         <Icon aria-hidden />
