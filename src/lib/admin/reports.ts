@@ -26,6 +26,9 @@ export interface ReportData {
   newLeads: Metric
   /** Taxa de fecho: ganhos / (ganhos + perdidos) decididos no período */
   closeRatePct: Metric
+  /** Negócios ganhos e perdidos no período (reaproveitado pelo Win Rate do Escritório Virtual) */
+  dealsWon: Metric
+  dealsLost: Metric
   topProjects: ClientProject[]
   topSectors: { sector: Sector; demand: number; leads: number; projects: number; revenue: number }[]
   forecast: { label: string; value: number; method: string }
@@ -73,6 +76,8 @@ export function buildReport(period: ReportPeriod, projects: ClientProject[], lea
   const projectsSold = metric(c.sold.length, p.sold.length)
   const newLeads = metric(c.newLeads.length, p.newLeads.length)
   const closeRatePct = metric(c.closeRate, p.closeRate)
+  const dealsWon = metric(c.won, p.won)
+  const dealsLost = metric(c.lost, p.lost)
 
   const topProjects = [...c.sold].sort((a, b) => b.value - a.value).slice(0, 3)
 
@@ -120,6 +125,8 @@ export function buildReport(period: ReportPeriod, projects: ClientProject[], lea
     projectsSold,
     newLeads,
     closeRatePct,
+    dealsWon,
+    dealsLost,
     topProjects,
     topSectors,
     forecast,

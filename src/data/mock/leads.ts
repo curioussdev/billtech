@@ -1,4 +1,5 @@
 import { MOCK_NOW } from '@/data/mock/projects'
+import type { LossReason } from '@/types/crm'
 import type { Lead, LeadChannel, LeadStage, Meeting } from '@/types/lead'
 import type { Sector } from '@/types/project'
 
@@ -43,12 +44,15 @@ const seeds: Seed[] = [
   ['l20', 'Carlos Pinto', 'Centro Médico Aurora', 'clinicas', 13900, 'ganho', 'linkedin', 60, 27, 5, 2],
   ['l21', 'Pedro Nunes', 'Loja Ponto Verde', 'comercio', 6200, 'ganho', 'organico', 40, 17, 3, 4],
   ['l22', 'Helena Costa', 'Padaria Real', 'restauracao', 3300, 'ganho', 'whatsapp', 32, 6, 2, 1],
-  ['l23', 'Miguel Santos', 'Imobiliária Costa Verde', 'imobiliario', 8700, 'ganho', 'indicacao', 75, 82, 4, 2],
+  ['l23', 'Miguel Santos', 'Imobiliária Costa Verde', 'imobiliario', 8700, 'ganho', 'indicacao', 75, 30, 4, 2],
   // Perdido
   ['l24', 'Rosa Andrade', 'Snack-Bar Girassol', 'restauracao', 2100, 'perdido', 'whatsapp', 45, 20, 2, 26],
   ['l25', 'Jorge Teixeira', 'Auto Serviço Teixeira', 'oficinas', 5400, 'perdido', 'organico', 55, 30, 3, 8],
   ['l26', 'Elisa Batista', 'Centro de Estética Lume', 'comercio', 6800, 'perdido', 'linkedin', 62, 25, 4, 5],
 ]
+
+/** Motivo de perda dos 3 leads em 'perdido' (usado no donut "Motivos de Perda" do Escritório Virtual). */
+const LOSS_REASONS: Record<string, LossReason> = { l24: 'timing', l25: 'concorrente', l26: 'preco' }
 
 export const mockLeads: Lead[] = seeds.map(([id, contactName, company, sector, estimatedValue, stage, channel, created, inStage, followUps, firstResponseHours]) => ({
   id,
@@ -58,6 +62,7 @@ export const mockLeads: Lead[] = seeds.map(([id, contactName, company, sector, e
   estimatedValue,
   stage,
   channel,
+  lossReason: LOSS_REASONS[id],
   createdAt: ago(created),
   stageEnteredAt: ago(inStage),
   owner: 'José Lopes',

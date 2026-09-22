@@ -2,6 +2,7 @@ import {
   Boxes,
   FileBarChart,
   FolderKanban,
+  Gauge,
   Inbox,
   KanbanSquare,
   Layers,
@@ -63,6 +64,7 @@ export const adminNav: NavGroup[] = [
   {
     label: 'Negócio',
     items: [
+      { title: 'Escritório Virtual', href: '/admin/crm', icon: Gauge },
       { title: 'Enviar mensagens', href: '/admin/comunicacoes', icon: Send },
       { title: 'Pedidos de clientes', href: '/admin/pedidos', icon: LifeBuoy, badge: 'requests' },
       { title: 'Receita & Projetos', href: '/admin/revenue', icon: Wallet },

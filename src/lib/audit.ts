@@ -25,6 +25,10 @@ export const AUDIT_ACTIONS = [
   'DELETE_CLIENT_PROJECT',
   'SEND_BROADCAST',
   'EXPORT_REVENUE',
+  'LOG_INTERACTION',
+  'MARK_DEAL_WON',
+  'MARK_DEAL_LOST',
+  'SET_GOAL',
 ] as const
 export type AuditAction = (typeof AUDIT_ACTIONS)[number]
 

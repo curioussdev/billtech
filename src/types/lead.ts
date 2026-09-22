@@ -1,3 +1,4 @@
+import type { DealProjectType, LossReason } from '@/types/crm'
 import type { Sector } from '@/types/project'
 
 export const LEAD_STAGES = ['captado', 'qualificado', 'proposta', 'negociacao', 'ganho', 'perdido'] as const
@@ -23,6 +24,11 @@ export interface Lead {
   followUps: number
   /** Horas até à primeira resposta ao lead (null = ainda sem resposta) */
   firstResponseHours: number | null
+  /** Preenchido ao mover para "Ganho" (mini-form do Deal Board) */
+  projectName?: string
+  projectType?: DealProjectType
+  /** Preenchido ao mover para "Perdido" (modal de motivo do Deal Board) */
+  lossReason?: LossReason
 }
 
 export const MEETING_KINDS = ['reuniao', 'demo', 'follow-up'] as const

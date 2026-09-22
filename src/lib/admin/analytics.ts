@@ -1,11 +1,68 @@
 import { MONTHLY_REVENUE_TARGET, mockDailyVisits, mockRealtime } from '@/data/mock/dashboard'
+import { mockGoals, mockInteractions } from '@/data/mock/crm'
 import { mockLeads, mockMeetings } from '@/data/mock/leads'
 import { MOCK_NOW, mockProjects } from '@/data/mock/projects'
 import { isSupabaseConfigured } from '@/lib/supabase/config'
 import { createAdminClient } from '@/lib/supabase/server'
 import type { DashboardOverview, MonthlyRevenuePoint, OnlinePage, PageStat, RealtimeUsers, SourceStat, TimeSeriesPoint } from '@/types/analytics'
+import type { Goal, Interaction } from '@/types/crm'
 import type { Lead, Meeting } from '@/types/lead'
 import { PROJECT_STATUSES, SECTORS, type ClientProject, type ProjectStatus } from '@/types/project'
+
+type InteractionRow = {
+  id: string
+  lead_id: string
+  lead_label: string
+  type: Interaction['type']
+  occurred_at: string
+  duration_min: number | null
+  outcome: Interaction['outcome']
+  notes: string
+  next_step: string
+  created_at: string
+}
+
+/** Follow-up e cold calls: lê a tabela real `interactions`; sem base de dados, cai nos dados de demonstração. */
+export async function listInteractions(): Promise<Interaction[]> {
+  if (!isLive()) return mockInteractions
+  try {
+    const { data, error } = await createAdminClient().from('interactions').select('*').order('occurred_at', { ascending: false })
+    if (error) throw error
+    return (data as InteractionRow[]).map((r) => ({
+      id: r.id,
+      leadId: r.lead_id,
+      leadLabel: r.lead_label,
+      type: r.type,
+      occurredAt: r.occurred_at,
+      durationMin: r.duration_min,
+      outcome: r.outcome,
+      notes: r.notes,
+      nextStep: r.next_step,
+      createdAt: r.created_at,
+    }))
+  } catch (error) {
+    console.error('[crm] leitura de interactions falhou; a usar dados de demonstração:', error)
+    return mockInteractions
+  }
+}
+
+type GoalRow = { id: string; period_type: Goal['periodType']; metric: Goal['metric']; target: number; period: string; created_at: string; updated_at: string }
+
+/** Metas: lê a tabela real `goals`; sem base de dados, cai nos dados de demonstração. */
+export async function listGoals(): Promise<Goal[]> {
+  if (!isLive()) return mockGoals
+  try {
+    const { data, error } = await createAdminClient().from('goals').select('*')
+    if (error) throw error
+    if (data.length === 0) return mockGoals // ainda sem metas configuradas: mostra os valores de exemplo
+    return (data as GoalRow[]).map((r) => ({ id: r.id, periodType: r.period_type, metric: r.metric, target: r.target, period: r.period, createdAt: r.created_at, updatedAt: r.updated_at }))
+  } catch (error) {
+    console.error('[crm] leitura de goals falhou; a usar dados de demonstração:', error)
+    return mockGoals
+  }
+}
+
+const isLive = () => isSupabaseConfigured && Boolean(process.env.SUPABASE_SERVICE_ROLE_KEY)
 
 /**
  * CAMADA DE DADOS DO ADMIN.
@@ -16,8 +73,6 @@ import { PROJECT_STATUSES, SECTORS, type ClientProject, type ProjectStatus } fro
 const monthKey = (iso: string) => iso.slice(0, 7)
 const sum = (items: number[]) => items.reduce((a, b) => a + b, 0)
 const pct = (current: number, previous: number) => (previous === 0 ? 0 : ((current - previous) / previous) * 100)
-
-const isLive = () => isSupabaseConfigured && Boolean(process.env.SUPABASE_SERVICE_ROLE_KEY)
 
 type DailyRow = { day: string; visitors: number; pageviews: number }
 
