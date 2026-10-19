@@ -1,4 +1,5 @@
 import type { Metadata } from 'next'
+import Link from 'next/link'
 import { Trash2 } from 'lucide-react'
 import { deleteExternalSite } from '@/actions/external-sites'
 import { ConfirmButton } from '@/components/admin/editor/confirm-button'
@@ -24,10 +25,6 @@ export default async function CommandCenterPage() {
         <NewSiteModal clients={clients.map((c) => ({ id: c.id, name: c.name }))} />
       </div>
 
-      <p role="note" className="rounded-lg border border-border bg-muted/40 px-3 py-2 text-sm text-muted-foreground">
-        <strong>Fase 1 (registo).</strong> O endpoint de ingestão (com validação HMAC) e o dashboard de telemetria — visitas, erros, uptime — chegam na Fase 2. Por agora, registe os sites e gere as chaves.
-      </p>
-
       {sites.length === 0 ? (
         <p className="rounded-2xl border border-dashed border-border p-8 text-center text-muted-foreground">Ainda não há sites externos registados.</p>
       ) : (
@@ -48,8 +45,16 @@ export default async function CommandCenterPage() {
             <tbody className="divide-y divide-border">
               {sites.map((s) => (
                 <tr key={s.id} className="hover:bg-muted/40">
-                  <td className="px-4 py-3 font-medium">{s.clientName}</td>
-                  <td className="px-4 py-3">{s.name}</td>
+                  <td className="px-4 py-3 font-medium">
+                    <Link href={`/admin/command-center/${s.id}`} className="hover:underline">
+                      {s.clientName}
+                    </Link>
+                  </td>
+                  <td className="px-4 py-3">
+                    <Link href={`/admin/command-center/${s.id}`} className="hover:underline">
+                      {s.name}
+                    </Link>
+                  </td>
                   <td className="px-4 py-3 text-muted-foreground">{s.domain}</td>
                   <td className="px-4 py-3">
                     <span className={`inline-flex rounded-full px-2.5 py-0.5 text-xs font-semibold ${statusStyles[s.status]}`}>{statusLabels[s.status]}</span>

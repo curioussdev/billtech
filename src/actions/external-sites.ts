@@ -1,6 +1,6 @@
 'use server'
 
-import { createHash, randomBytes } from 'crypto'
+import { randomBytes } from 'crypto'
 import { revalidatePath } from 'next/cache'
 import { z } from 'zod'
 import { logAudit } from '@/lib/audit'
@@ -21,9 +21,10 @@ const createSchema = z.object({
 export type CreateExternalSiteResult = { ok: true; apiKey: string } | { ok: false; message: string }
 
 /**
- * Regista um site externo e gera a respetiva chave de API. A chave só existe em claro aqui, no
- * retorno desta ação — na base de dados só fica o hash SHA-256. Se se perder, só resta gerar outra
- * (apagar e recriar o registo nesta Fase 1; a Fase 2 traz "regenerar chave").
+ * Regista um site externo e gera a respetiva chave de API. É mostrada uma única vez aqui, no
+ * retorno desta ação — tal como qualquer segredo de webhook (Stripe, GitHub, etc.), fica guardada
+ * em claro no servidor porque é precisa para validar a assinatura HMAC de cada evento recebido; a
+ * RLS (só is_admin()) é a proteção.
  */
 export async function createExternalSite(input: unknown): Promise<CreateExternalSiteResult> {
   const admin = await requireAdmin()
@@ -31,14 +32,30 @@ export async function createExternalSite(input: unknown): Promise<CreateExternal
   if (!parsed.success) return { ok: false, message: parsed.error.issues[0]?.message ?? 'Dados inválidos.' }
 
   const apiKey = randomBytes(32).toString('hex')
-  const apiKeyHash = createHash('sha256').update(apiKey).digest('hex')
 
   const db = createAdminClient()
-  const { error } = await db.from('external_sites').insert({ client_id: parsed.data.clientId, name: parsed.data.name, domain: parsed.data.domain, api_key_hash: apiKeyHash })
+  const { error } = await db.from('external_sites').insert({ client_id: parsed.data.clientId, name: parsed.data.name, domain: parsed.data.domain, api_key: apiKey })
   if (error) return { ok: false, message: 'Não foi possível registar o site.' }
 
   await logAudit({ admin, action: 'CREATE_EXTERNAL_SITE', resource: 'negocio', details: { domain: parsed.data.domain, clientId: parsed.data.clientId } })
   revalidatePath('/admin/command-center')
+  return { ok: true, apiKey }
+}
+
+/** Gera uma nova chave para um site já registado (invalida a anterior de imediato). */
+export async function regenerateApiKey(siteId: string): Promise<CreateExternalSiteResult> {
+  const admin = await requireAdmin()
+  const parsed = z.uuid().safeParse(siteId)
+  if (!parsed.success) return { ok: false, message: 'Pedido inválido.' }
+
+  const apiKey = randomBytes(32).toString('hex')
+  const db = createAdminClient()
+  const { error } = await db.from('external_sites').update({ api_key: apiKey }).eq('id', parsed.data)
+  if (error) return { ok: false, message: 'Não foi possível gerar uma nova chave.' }
+
+  await logAudit({ admin, action: 'CREATE_EXTERNAL_SITE', resource: 'negocio', targetId: parsed.data, details: { regenerated: true } })
+  revalidatePath('/admin/command-center')
+  revalidatePath(`/admin/command-center/${parsed.data}`)
   return { ok: true, apiKey }
 }
 
