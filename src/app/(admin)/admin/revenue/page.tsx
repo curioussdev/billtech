@@ -1,9 +1,8 @@
 import type { Metadata } from 'next'
 import Link from 'next/link'
-import { ArrowDown, ArrowUp, ArrowUpDown } from 'lucide-react'
+import { ArrowDown, ArrowUp, ArrowUpDown, Pencil } from 'lucide-react'
 import { BusinessStatusBadge, StatCard } from '@/components/admin/business/widgets'
 import { ExportCsvButton } from '@/components/admin/business/export-csv-button'
-import { DemoBanner } from '@/components/admin/dashboard/demo-banner'
 import { Button } from '@/components/ui/button'
 import { businessNow, listProjects } from '@/lib/admin/analytics'
 import {
@@ -57,7 +56,6 @@ export default async function RevenuePage({ searchParams }: { searchParams: Prom
         <h1 className="text-3xl font-black tracking-tight">Receita &amp; Projetos</h1>
         <p className="mt-1 text-muted-foreground">Projetos vendidos, faturação e margem. {periodLabels[filters.periodo]}.</p>
       </div>
-      <DemoBanner trafficIsLive={false} />
 
       <section aria-label="Indicadores" className="grid gap-4 sm:grid-cols-2 xl:grid-cols-4">
         <StatCard label="Receita total" value={formatEUR(s.total)} hint={`${s.count} ${s.count === 1 ? 'projeto' : 'projetos'} · ${periodLabels[filters.periodo]}`} />
@@ -137,6 +135,9 @@ export default async function RevenuePage({ searchParams }: { searchParams: Prom
                     </th>
                   )
                 })}
+                <th scope="col" className="px-4 py-3">
+                  <span className="sr-only">Ações</span>
+                </th>
               </tr>
             </thead>
             <tbody className="divide-y divide-border">
@@ -151,6 +152,11 @@ export default async function RevenuePage({ searchParams }: { searchParams: Prom
                   </td>
                   <td className="px-4 py-3 text-right tabular-nums">{formatPct(p.marginPct)}</td>
                   <td className="whitespace-nowrap px-4 py-3 tabular-nums">{new Date(p.soldAt).toLocaleDateString('pt-PT', { timeZone: 'UTC' })}</td>
+                  <td className="px-4 py-3 text-right">
+                    <Button render={<Link href={`/admin/revenue/${p.id}`} />} nativeButton={false} variant="ghost" size="icon" aria-label={`Editar entrega de ${p.name}`}>
+                      <Pencil className="size-4" aria-hidden />
+                    </Button>
+                  </td>
                 </tr>
               ))}
             </tbody>

@@ -1,5 +1,7 @@
 'use server'
 
+import { revalidatePath } from 'next/cache'
+import { redirect } from 'next/navigation'
 import { z } from 'zod'
 import { logAudit } from '@/lib/audit'
 import { requireAdmin } from '@/lib/auth'
@@ -7,6 +9,7 @@ import { isSupabaseConfigured } from '@/lib/supabase/config'
 import { createAdminClient } from '@/lib/supabase/server'
 import { DEAL_PROJECT_TYPES, LOSS_REASONS } from '@/types/crm'
 import { LEAD_STAGES } from '@/types/lead'
+import { PROJECT_STATUSES } from '@/types/project'
 
 /** Mesmo critério de `src/lib/admin/analytics.ts`: só grava a sério com Supabase configurado + service role key. */
 const isLive = () => isSupabaseConfigured && Boolean(process.env.SUPABASE_SERVICE_ROLE_KEY)
@@ -77,6 +80,7 @@ export async function markDealWon(input: unknown): Promise<DealCloseResult> {
         project_name: parsed.data.projectName,
         project_type: parsed.data.projectType,
         estimated_value: parsed.data.value,
+        delivery_status: 'em_desenvolvimento',
       })
       .eq('id', parsed.data.leadId)
     if (error && !isMissingTable(error)) {
@@ -117,4 +121,46 @@ export async function markDealLost(input: unknown): Promise<DealCloseResult> {
 
   await logAudit({ admin, action: 'MARK_DEAL_LOST', resource: 'negocio', targetId: parsed.data.leadId, details: parsed.data })
   return { ok: true }
+}
+
+const deliverySchema = z.object({
+  leadId: z.string().min(1).max(60),
+  deliveryStatus: z.enum(PROJECT_STATUSES),
+  marginPct: z.coerce.number('Indique a margem.').min(0).max(100),
+  deliveredAt: z.string().optional(),
+})
+
+/**
+ * Atualiza a entrega de um negócio já ganho (estado, margem e data de entrega) — é o que alimenta
+ * "Receita & Projetos" com dados reais em vez dos de demonstração.
+ */
+export async function updateDealDelivery(formData: FormData): Promise<void> {
+  const admin = await requireAdmin()
+  const parsed = deliverySchema.safeParse({
+    leadId: formData.get('leadId'),
+    deliveryStatus: formData.get('deliveryStatus'),
+    marginPct: formData.get('marginPct'),
+    deliveredAt: formData.get('deliveredAt') || undefined,
+  })
+  if (!parsed.success) return
+  const { leadId, deliveryStatus, marginPct } = parsed.data
+  const deliveredAt = deliveryStatus === 'entregue' ? (parsed.data.deliveredAt ?? new Date().toISOString().slice(0, 10)) : null
+
+  if (isLive()) {
+    const { error } = await createAdminClient()
+      .from('leads')
+      .update({ delivery_status: deliveryStatus, margin_pct: marginPct, delivered_at: deliveredAt })
+      .eq('id', leadId)
+      .eq('stage', 'ganho')
+    if (error && !isMissingTable(error)) {
+      console.error('[pipeline] atualização de entrega falhou:', error)
+      return
+    }
+  }
+
+  await logAudit({ admin, action: 'UPDATE_DEAL_DELIVERY', resource: 'negocio', targetId: leadId, details: { deliveryStatus, marginPct, deliveredAt } })
+  revalidatePath('/admin/pipeline')
+  revalidatePath('/admin')
+  revalidatePath('/admin/revenue')
+  redirect('/admin/revenue')
 }

@@ -1,16 +1,15 @@
 import 'server-only'
-import { mockDiscountCodes, mockFinanceClients, mockInstallments, mockInvoices, mockLoyalty, mockPayments } from '@/data/mock/finance'
+import { mockDiscountCodes, mockFinanceClients, mockInstallments, mockInvoices, mockPayments } from '@/data/mock/finance'
 import { type InstallmentRow, type LoyaltyRow, type PaymentRow, mapInstallment, mapInvoice, mapLoyalty, mapPayment } from '@/lib/finance/mappers'
 import { isSupabaseConfigured } from '@/lib/supabase/config'
 import { createAdminClient } from '@/lib/supabase/server'
 import type { ClientFinanceSummary, ClientLoyalty, DiscountCode, InvoiceWithDetails } from '@/types/finance'
 
 /**
- * Leitura do módulo financeiro, do lado do admin (`/admin/finance`). Ao contrário de
- * `queries.ts` (área de cliente, sem mocks), aqui segue-se o mesmo padrão já usado no CRM: com a
- * tabela `invoices` ainda vazia, mostra os dados de demonstração — os 5 clientes já usados desde a
- * Fase 1 (`data/mock/finance.ts`) — para o painel nunca aparecer em branco antes de haver faturas
- * reais. Os IDs de cliente mock começam sempre por "fc-", nunca colidem com um UUID real.
+ * Leitura do módulo financeiro, do lado do admin (`/admin/finance`). Sem Supabase configurado (ou
+ * sem a service role key), cai nos dados de demonstração para a UI não ficar em branco em dev local;
+ * com a base de dados ligada, mostra sempre os dados reais — incluindo quando ainda não há nenhuma
+ * fatura. Os IDs de cliente mock começam sempre por "fc-", nunca colidem com um UUID real.
  */
 const isLive = () => isSupabaseConfigured && Boolean(process.env.SUPABASE_SERVICE_ROLE_KEY)
 const isMockClientId = (id: string) => id.startsWith('fc-')
@@ -44,16 +43,16 @@ export async function listAllInvoices(): Promise<AdminInvoice[]> {
       db.from('payments').select('*').order('created_at', { ascending: false }),
     ])
     if (error) throw error
-    if (!invoiceRows || invoiceRows.length === 0) return mockAdminInvoices()
+    const rows = invoiceRows ?? []
 
-    const clientIds = [...new Set(invoiceRows.map((r) => r.client_id as string))]
+    const clientIds = [...new Set(rows.map((r) => r.client_id as string))]
     const { data: profiles } = await db.from('profiles').select('id, full_name, email, company').in('id', clientIds)
     const profileMap = new Map((profiles ?? []).map((p) => [p.id as string, p]))
 
     const installments = ((installmentRows ?? []) as InstallmentRow[]).map(mapInstallment)
     const payments = ((paymentRows ?? []) as PaymentRow[]).map(mapPayment)
 
-    return invoiceRows.map((row) => {
+    return rows.map((row) => {
       const invoice = mapInvoice(row)
       const profile = profileMap.get(row.client_id as string)
       return {
@@ -95,7 +94,6 @@ export async function listFinanceSummary(): Promise<ClientFinanceSummary[]> {
       console.error('[finance] leitura de client_loyalty (admin) falhou:', error)
     }
   }
-  for (const l of mockLoyalty) if (!loyaltyMap.has(l.clientId)) loyaltyMap.set(l.clientId, l)
 
   return clientIds
     .map((clientId) => {
@@ -135,8 +133,7 @@ export async function listDiscountCodes(): Promise<DiscountCode[]> {
     const db = createAdminClient()
     const { data, error } = await db.from('discount_codes').select('*').order('created_at', { ascending: false })
     if (error) throw error
-    if (!data || data.length === 0) return mockDiscountCodes
-    return data.map((r) => ({
+    return (data ?? []).map((r) => ({
       id: r.id,
       code: r.code,
       percentage: r.percentage,

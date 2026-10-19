@@ -1,7 +1,7 @@
 import { MONTHLY_REVENUE_TARGET, mockDailyVisits, mockRealtime } from '@/data/mock/dashboard'
 import { mockGoals, mockInteractions } from '@/data/mock/crm'
 import { mockLeads, mockMeetings } from '@/data/mock/leads'
-import { MOCK_NOW, mockProjects } from '@/data/mock/projects'
+import { mockProjects } from '@/data/mock/projects'
 import { isSupabaseConfigured } from '@/lib/supabase/config'
 import { createAdminClient } from '@/lib/supabase/server'
 import type { DashboardOverview, MonthlyRevenuePoint, OnlinePage, PageStat, RealtimeUsers, SourceStat, TimeSeriesPoint } from '@/types/analytics'
@@ -54,7 +54,6 @@ export async function listGoals(): Promise<Goal[]> {
   try {
     const { data, error } = await createAdminClient().from('goals').select('*')
     if (error) throw error
-    if (data.length === 0) return mockGoals // ainda sem metas configuradas: mostra os valores de exemplo
     return (data as GoalRow[]).map((r) => ({ id: r.id, periodType: r.period_type, metric: r.metric, target: r.target, period: r.period, createdAt: r.created_at, updatedAt: r.updated_at }))
   } catch (error) {
     console.error('[crm] leitura de goals falhou; a usar dados de demonstração:', error)
@@ -134,21 +133,55 @@ async function loadLiveRealtime(): Promise<RealtimeUsers | null> {
   }
 }
 
-export async function listProjects(): Promise<ClientProject[]> {
-  return mockProjects
+type WonLeadRow = {
+  id: string
+  company: string
+  project_name: string | null
+  sector: ClientProject['sector']
+  estimated_value: number
+  delivery_status: ProjectStatus | null
+  margin_pct: number | null
+  stage_entered_at: string
+  delivered_at: string | null
 }
 
 /**
- * Leads/Pipeline: lê a tabela real `leads`; sem base de dados (ou ainda por seedar), cai nos dados de
- * demonstração. Ver nota em `supabase/007_leads.sql` — é o que fecha o hiato de "atualizar a página
- * volta a mostrar os dados de exemplo" no Ganho/Perdido do Pipeline.
+ * Projetos vendidos/entregues: negócios já ganhos no Pipeline (`leads.stage = 'ganho'`), com o
+ * acompanhamento de entrega de `supabase/012_deal_delivery.sql`. Sem Supabase configurado, cai nos
+ * dados de demonstração.
  */
+export async function listProjects(): Promise<ClientProject[]> {
+  if (!isLive()) return mockProjects
+  try {
+    const { data, error } = await createAdminClient()
+      .from('leads')
+      .select('id, company, project_name, sector, estimated_value, delivery_status, margin_pct, stage_entered_at, delivered_at')
+      .eq('stage', 'ganho')
+      .order('stage_entered_at', { ascending: false })
+    if (error) throw error
+    return (data as WonLeadRow[]).map((r) => ({
+      id: r.id,
+      client: r.company,
+      name: r.project_name ?? 'Projeto sem nome',
+      sector: r.sector,
+      value: r.estimated_value,
+      status: r.delivery_status ?? 'em_desenvolvimento',
+      marginPct: r.margin_pct ?? 0,
+      soldAt: r.stage_entered_at,
+      ...(r.delivered_at ? { deliveredAt: r.delivered_at } : {}),
+    }))
+  } catch (error) {
+    console.error('[revenue] leitura de projetos vendidos falhou; a usar dados de demonstração:', error)
+    return mockProjects
+  }
+}
+
+/** Leads/Pipeline: lê a tabela real `leads`; sem Supabase configurado, cai nos dados de demonstração. */
 export async function listLeads(): Promise<Lead[]> {
   if (!isLive()) return mockLeads
   try {
     const { data, error } = await createAdminClient().from('leads').select('*').order('created_at', { ascending: false })
     if (error) throw error
-    if (data.length === 0) return mockLeads // tabela ainda vazia (migração por seedar): mostra os de demonstração
     return (data as LeadRow[]).map((r) => ({
       id: r.id,
       contactName: r.contact_name,
@@ -176,8 +209,8 @@ export async function listMeetings(): Promise<Meeting[]> {
   return mockMeetings
 }
 
-/** Data "de hoje" dos dados de negócio (fixa nos mocks; `new Date()` quando vierem da base de dados). */
-export const businessNow = () => new Date(MOCK_NOW)
+/** Data "de hoje" dos dados de negócio. */
+export const businessNow = () => new Date()
 
 function monthlyRevenue(projects: ClientProject[], now: Date, months: number): MonthlyRevenuePoint[] {
   return Array.from({ length: months }, (_, i) => {
@@ -189,7 +222,7 @@ function monthlyRevenue(projects: ClientProject[], now: Date, months: number): M
 
 export async function getDashboardOverview(): Promise<DashboardOverview> {
   const projects = await listProjects()
-  const now = new Date(MOCK_NOW)
+  const now = businessNow()
 
   // Tráfego: últimos 30 dias vs 30 anteriores (real quando disponível)
   const [liveTraffic, liveRealtime] = await Promise.all([loadLiveTraffic(), loadLiveRealtime()])
@@ -211,12 +244,12 @@ export async function getDashboardOverview(): Promise<DashboardOverview> {
   const byStatus = Object.fromEntries(PROJECT_STATUSES.map((s) => [s, projects.filter((p) => p.status === s).length])) as Record<ProjectStatus, number>
 
   return {
-    asOf: MOCK_NOW,
+    asOf: now.toISOString(),
     trafficIsLive: Boolean(liveTraffic),
     topPages: liveTraffic?.topPages ?? [],
     sources: liveTraffic?.sources ?? [],
     traffic: { visits, previousVisits, changePct: pct(visits, previousVisits), series: current },
-    realtime: liveRealtime ?? { ...mockRealtime, pages: [], updatedAt: MOCK_NOW },
+    realtime: liveRealtime ?? { ...mockRealtime, pages: [], updatedAt: now.toISOString() },
     revenue: {
       currency: 'EUR',
       monthToDate,

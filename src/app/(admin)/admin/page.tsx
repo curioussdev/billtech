@@ -2,7 +2,6 @@ import type { Metadata } from 'next'
 import { ChartCard } from '@/components/admin/dashboard/chart-card'
 import { RevenueLineChart, SectorBarChart } from '@/components/admin/dashboard/charts'
 import { ActivityPanels } from '@/components/admin/dashboard/activity-panels'
-import { DemoBanner } from '@/components/admin/dashboard/demo-banner'
 import { ProjectsCard, RevenueCard, TrafficCard } from '@/components/admin/dashboard/kpi-cards'
 import { RealtimeUsersCard } from '@/components/admin/dashboard/realtime-users-card'
 import { getDashboardOverview } from '@/lib/admin/analytics'
@@ -18,8 +17,6 @@ export default async function AdminHomePage() {
         <h1 className="text-3xl font-black tracking-tight">Visão executiva</h1>
         <p className="mt-1 text-muted-foreground">Tráfego, receita e projetos da BillTech num só lugar.</p>
       </div>
-
-      <DemoBanner trafficIsLive={overview.trafficIsLive} />
 
       <section aria-label="Indicadores principais" className="grid gap-4 sm:grid-cols-2 xl:grid-cols-4">
         <TrafficCard data={overview.traffic} delay={0} />

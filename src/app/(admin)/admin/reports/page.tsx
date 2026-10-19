@@ -1,7 +1,6 @@
 import type { Metadata } from 'next'
 import { ReportView } from '@/components/admin/business/report-view'
 import { ReportTabs } from '@/components/admin/business/report-widgets'
-import { DemoBanner } from '@/components/admin/dashboard/demo-banner'
 import { businessNow, listLeads, listProjects } from '@/lib/admin/analytics'
 import { buildReport, REPORT_PERIODS, type ReportPeriod } from '@/lib/admin/reports'
 
@@ -20,7 +19,6 @@ export default async function ReportsPage() {
         <h1 className="text-3xl font-black tracking-tight">Relatórios</h1>
         <p className="mt-1 text-muted-foreground">Resumo executivo, comparativos e previsão, gerados automaticamente a partir dos dados.</p>
       </div>
-      <DemoBanner trafficIsLive={false} />
       <ReportTabs reports={reports} />
     </div>
   )
