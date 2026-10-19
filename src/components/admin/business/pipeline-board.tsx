@@ -15,12 +15,12 @@ import {
   type DragEndEvent,
   type DragStartEvent,
 } from '@dnd-kit/core'
-import { CalendarClock, CheckCircle2, GripVertical, User, XCircle } from 'lucide-react'
+import { ArrowRight, CalendarClock, CheckCircle2, GripVertical, User, XCircle } from 'lucide-react'
 import { moveLead } from '@/actions/pipeline'
 import { useToast } from '@/components/admin/crm/toast'
 import { LostDealDialog } from '@/components/admin/crm/lost-deal-dialog'
 import { WinDealDialog, type WinDealPayload } from '@/components/admin/crm/win-deal-dialog'
-import { daysInStage, funnelMetrics } from '@/lib/admin/business'
+import { daysInStage, funnelMetrics, OPEN_STAGES, STALE_STAGE_DAYS, weightedValue } from '@/lib/admin/business'
 import { formatEUR, formatPct, leadStageLabels, sectorLabels } from '@/lib/admin/format'
 import { lossReasonLabels } from '@/lib/crm/labels'
 import { cn } from '@/lib/utils'
@@ -36,11 +36,12 @@ const stageStyles: Record<LeadStage, string> = {
   perdido: 'border-red-500/40 bg-red-500/10',
 }
 
-type CardProps = { lead: Lead; now: Date; onMove?: (stage: LeadStage) => void }
+type CardProps = { lead: Lead; now: Date; nextStep?: string; onMove?: (stage: LeadStage) => void }
 
 /** Aparência do cartão (sem hooks de arrasto): reutilizada no cartão real e na "sombra" do DragOverlay. */
-function LeadCardView({ lead, now, onMove, handle, dragging, overlay }: CardProps & { handle: React.ReactNode; dragging?: boolean; overlay?: boolean }) {
+function LeadCardView({ lead, now, nextStep, onMove, handle, dragging, overlay }: CardProps & { handle: React.ReactNode; dragging?: boolean; overlay?: boolean }) {
   const days = daysInStage(lead, now)
+  const stale = OPEN_STAGES.includes(lead.stage) && days > STALE_STAGE_DAYS
 
   return (
     <div className={cn('grid gap-2 rounded-xl border border-border bg-card p-3 text-sm shadow-sm', dragging && 'opacity-40', overlay && 'shadow-xl ring-2 ring-primary')}>
@@ -53,7 +54,7 @@ function LeadCardView({ lead, now, onMove, handle, dragging, overlay }: CardProp
       </div>
       <p className="text-base font-bold tabular-nums">{formatEUR(lead.estimatedValue)}</p>
       <p className="flex flex-wrap items-center gap-x-3 gap-y-1 text-xs text-muted-foreground">
-        <span className="inline-flex items-center gap-1">
+        <span className={cn('inline-flex items-center gap-1', stale && 'font-semibold text-red-700 dark:text-red-400')}>
           <CalendarClock className="size-3" aria-hidden />
           {days} {days === 1 ? 'dia' : 'dias'} na etapa
         </span>
@@ -62,6 +63,12 @@ function LeadCardView({ lead, now, onMove, handle, dragging, overlay }: CardProp
           {lead.owner}
         </span>
       </p>
+      {nextStep && (
+        <p className="flex items-start gap-1 truncate text-xs text-muted-foreground" title={nextStep}>
+          <ArrowRight className="mt-0.5 size-3 shrink-0" aria-hidden />
+          <span className="truncate">{nextStep}</span>
+        </p>
+      )}
       {onMove && (
         <select
           value={lead.stage}
@@ -83,13 +90,14 @@ function LeadCardView({ lead, now, onMove, handle, dragging, overlay }: CardProp
 const handleClass = 'mt-0.5 shrink-0 cursor-grab touch-none rounded p-0.5 text-muted-foreground hover:text-foreground focus-visible:ring-2 focus-visible:ring-ring active:cursor-grabbing'
 
 /** Cartão arrastável: a pega é o único alvo de arrasto, o resto do cartão (menu incluído) continua utilizável. */
-function LeadCard({ lead, now, onMove }: CardProps) {
+function LeadCard({ lead, now, nextStep, onMove }: CardProps) {
   const { attributes, listeners, setNodeRef, isDragging } = useDraggable({ id: lead.id })
   return (
     <li ref={setNodeRef}>
       <LeadCardView
         lead={lead}
         now={now}
+        nextStep={nextStep}
         onMove={onMove}
         dragging={isDragging}
         handle={
@@ -102,9 +110,10 @@ function LeadCard({ lead, now, onMove }: CardProps) {
   )
 }
 
-function Column({ stage, leads, now, onMove }: { stage: LeadStage; leads: Lead[]; now: Date; onMove: (id: string, stage: LeadStage) => void }) {
+function Column({ stage, leads, now, nextSteps, onMove }: { stage: LeadStage; leads: Lead[]; now: Date; nextSteps: Record<string, string>; onMove: (id: string, stage: LeadStage) => void }) {
   const { setNodeRef, isOver } = useDroppable({ id: stage })
   const total = leads.reduce((acc, l) => acc + l.estimatedValue, 0)
+  const weighted = OPEN_STAGES.includes(stage) ? weightedValue(leads) : null
 
   return (
     <section ref={setNodeRef} aria-labelledby={`col-${stage}`} className={cn('flex min-h-64 w-72 shrink-0 flex-col rounded-2xl border p-3 transition-colors', stageStyles[stage], isOver && 'ring-2 ring-primary')}>
@@ -116,10 +125,15 @@ function Column({ stage, leads, now, onMove }: { stage: LeadStage; leads: Lead[]
           <span className="ml-auto rounded-full bg-background px-2 py-0.5 text-xs font-semibold tabular-nums">{leads.length}</span>
         </h3>
         <p className="text-xs tabular-nums text-muted-foreground">{formatEUR(total)}</p>
+        {weighted !== null && (
+          <p className="text-xs tabular-nums text-muted-foreground" title="Valor ponderado pela probabilidade de fecho da etapa">
+            {formatEUR(weighted)} ponderado
+          </p>
+        )}
       </header>
       <ul className="grid flex-1 content-start gap-2" aria-label={`Leads em ${leadStageLabels[stage]}`}>
         {leads.map((lead) => (
-          <LeadCard key={lead.id} lead={lead} now={now} onMove={(s) => onMove(lead.id, s)} />
+          <LeadCard key={lead.id} lead={lead} now={now} nextStep={nextSteps[lead.id]} onMove={(s) => onMove(lead.id, s)} />
         ))}
         {leads.length === 0 && <li className="rounded-lg border border-dashed border-border p-4 text-center text-xs text-muted-foreground">Largue um lead aqui</li>}
       </ul>
@@ -127,7 +141,19 @@ function Column({ stage, leads, now, onMove }: { stage: LeadStage; leads: Lead[]
   )
 }
 
-export function PipelineBoard({ initialLeads, nowIso, ltv, acquisitionSpend }: { initialLeads: Lead[]; nowIso: string; ltv: number; acquisitionSpend: number }) {
+export function PipelineBoard({
+  initialLeads,
+  nowIso,
+  ltv,
+  acquisitionSpend,
+  nextSteps,
+}: {
+  initialLeads: Lead[]
+  nowIso: string
+  ltv: number
+  acquisitionSpend: number
+  nextSteps: Record<string, string>
+}) {
   const now = useMemo(() => new Date(nowIso), [nowIso])
   const [leads, setLeads] = useState(initialLeads)
   const [activeId, setActiveId] = useState<string | null>(null)
@@ -143,6 +169,7 @@ export function PipelineBoard({ initialLeads, nowIso, ltv, acquisitionSpend }: {
 
   // Métricas recalculadas ao vivo a cada movimento
   const metrics = useMemo(() => funnelMetrics(leads, [], acquisitionSpend), [leads, acquisitionSpend])
+  const openWeighted = useMemo(() => weightedValue(leads.filter((l) => OPEN_STAGES.includes(l.stage))), [leads])
   const byStage = useMemo(() => Object.fromEntries(LEAD_STAGES.map((s) => [s, leads.filter((l) => l.stage === s)])) as Record<LeadStage, Lead[]>, [leads])
   const activeLead = leads.find((l) => l.id === activeId) ?? null
 
@@ -208,7 +235,8 @@ export function PipelineBoard({ initialLeads, nowIso, ltv, acquisitionSpend }: {
     { label: 'Taxa de conversão geral', value: formatPct(metrics.conversionPct), hint: 'Lead → Ganho' },
     { label: 'CAC estimado', value: formatEUR(metrics.cac), hint: `${formatEUR(acquisitionSpend)} investidos (90 dias) ÷ negócios ganhos` },
     { label: 'LTV médio', value: formatEUR(ltv), hint: 'Lucro bruto médio por cliente' },
-    { label: 'Valor total no pipeline', value: formatEUR(metrics.pipelineValue), hint: 'Leads em aberto' },
+    { label: 'Valor total no pipeline', value: formatEUR(metrics.pipelineValue), hint: 'Leads em aberto (sem ponderar)' },
+    { label: 'Valor ponderado no pipeline', value: formatEUR(openWeighted), hint: 'Ponderado pela probabilidade de fecho de cada etapa' },
   ]
 
   return (
@@ -229,7 +257,7 @@ export function PipelineBoard({ initialLeads, nowIso, ltv, acquisitionSpend }: {
         <div className="-mx-4 overflow-x-auto px-4 pb-4 sm:-mx-8 sm:px-8">
           <div className="flex gap-4">
             {LEAD_STAGES.map((stage) => (
-              <Column key={stage} stage={stage} leads={byStage[stage]} now={now} onMove={requestStageChange} />
+              <Column key={stage} stage={stage} leads={byStage[stage]} now={now} nextSteps={nextSteps} onMove={requestStageChange} />
             ))}
           </div>
         </div>

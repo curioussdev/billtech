@@ -3,7 +3,7 @@ import { mockDiscountCodes, mockFinanceClients, mockInstallments, mockInvoices, 
 import { type InstallmentRow, type LoyaltyRow, type PaymentRow, mapInstallment, mapInvoice, mapLoyalty, mapPayment } from '@/lib/finance/mappers'
 import { isSupabaseConfigured } from '@/lib/supabase/config'
 import { createAdminClient } from '@/lib/supabase/server'
-import type { ClientFinanceSummary, ClientLoyalty, DiscountCode, InvoiceWithDetails } from '@/types/finance'
+import type { ClientFinanceSummary, ClientLoyalty, DiscountCode, Expense, InvoiceWithDetails } from '@/types/finance'
 
 /**
  * Leitura do módulo financeiro, do lado do admin (`/admin/finance`). Sem Supabase configurado (ou
@@ -146,5 +146,19 @@ export async function listDiscountCodes(): Promise<DiscountCode[]> {
   } catch (error) {
     console.error('[finance] leitura de discount_codes falhou; a usar dados de demonstração:', error)
     return mockDiscountCodes
+  }
+}
+
+/** Despesas do negócio, para o ledger unificado. Sem dados de demonstração — é uma tabela nova, sem histórico fictício a simular. */
+export async function listExpenses(): Promise<Expense[]> {
+  if (!isLive()) return []
+  try {
+    const db = createAdminClient()
+    const { data, error } = await db.from('expenses').select('*').order('incurred_at', { ascending: false })
+    if (error) throw error
+    return (data ?? []).map((r) => ({ id: r.id, description: r.description, amount: r.amount, category: r.category, incurredAt: r.incurred_at, createdAt: r.created_at }))
+  } catch (error) {
+    console.error('[finance] leitura de expenses falhou:', error)
+    return []
   }
 }

@@ -2,6 +2,7 @@
 
 import { useEffect, useMemo, useRef, useState } from 'react'
 import { useActionState } from 'react'
+import { useRouter } from 'next/navigation'
 import { Check, ChevronsUpDown, Phone } from 'lucide-react'
 import { logInteraction, type LogInteractionState } from '@/actions/interactions'
 import { useToast } from '@/components/admin/crm/toast'
@@ -155,24 +156,37 @@ function FastLogForm({ leads, onClose }: { leads: FastLogLead[]; onClose: () => 
 export function FastLogModal({ leads }: { leads: FastLogLead[] }) {
   const [open, setOpen] = useState(false)
   const openedByKeyRef = useRef(false)
+  const router = useRouter()
+
+  // `leads` vem do layout do admin (Server Component): uma navegação normal entre páginas não o
+  // reexecuta, por isso a lista ficava parada no que existia quando o layout carregou. Ao abrir,
+  // força um refresh para o lead criado há 10 segundos já aparecer no picker.
+  function openModal() {
+    router.refresh()
+    setOpen(true)
+  }
 
   useEffect(() => {
     function onKeyDown(event: KeyboardEvent) {
       if ((event.metaKey || event.ctrlKey) && event.key.toLowerCase() === 'k') {
         event.preventDefault()
         openedByKeyRef.current = true
-        setOpen((v) => !v)
+        setOpen((v) => {
+          const next = !v
+          if (next) router.refresh()
+          return next
+        })
       }
     }
     document.addEventListener('keydown', onKeyDown)
     return () => document.removeEventListener('keydown', onKeyDown)
-  }, [])
+  }, [router])
 
   return (
     <>
       <Button
         type="button"
-        onClick={() => setOpen(true)}
+        onClick={openModal}
         aria-label="Registar interação rápida (Cmd+K)"
         title="Registar interação rápida (Cmd+K)"
         className="fixed bottom-6 right-6 z-40 size-14 rounded-full p-0 shadow-lg shadow-primary/30 hover:shadow-xl"

@@ -1,3 +1,4 @@
+import type { Interaction } from '@/types/crm'
 import { LEAD_CHANNELS, LEAD_STAGES, type Lead, type LeadChannel, type LeadStage } from '@/types/lead'
 import { PROJECT_STATUSES, SECTORS, type ClientProject, type ProjectStatus, type Sector } from '@/types/project'
 
@@ -96,8 +97,35 @@ export function sortProjects(projects: ClientProject[], key: SortKey, dir: 'asc'
 
 export const OPEN_STAGES: LeadStage[] = ['captado', 'qualificado', 'proposta', 'negociacao']
 
+/** Dias na etapa atual acima disto acende o alerta visual no card do Kanban. */
+export const STALE_STAGE_DAYS = 14
+
+/** Probabilidade de fecho por etapa, usada para ponderar o valor do pipeline (não é o valor "cego" de somar tudo). */
+export const STAGE_PROBABILITY: Record<LeadStage, number> = {
+  captado: 0.1,
+  qualificado: 0.25,
+  proposta: 0.5,
+  negociacao: 0.75,
+  ganho: 1,
+  perdido: 0,
+}
+
 export function daysInStage(lead: Lead, now: Date): number {
   return Math.max(0, Math.floor((now.getTime() - new Date(lead.stageEnteredAt).getTime()) / DAY_MS))
+}
+
+export function weightedValue(leads: Lead[]): number {
+  return sum(leads.map((l) => l.estimatedValue * STAGE_PROBABILITY[l.stage]))
+}
+
+/** Próximo passo mais recente registado para cada lead (última interação com `nextStep` preenchido). */
+export function latestNextStepByLead(interactions: Interaction[]): Record<string, string> {
+  const out: Record<string, string> = {}
+  const sorted = [...interactions].sort((a, b) => b.occurredAt.localeCompare(a.occurredAt))
+  for (const i of sorted) {
+    if (i.nextStep && !out[i.leadId]) out[i.leadId] = i.nextStep
+  }
+  return out
 }
 
 export function funnelMetrics(leads: Lead[], projects: ClientProject[], acquisitionSpend: number) {

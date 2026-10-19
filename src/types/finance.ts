@@ -101,3 +101,22 @@ export interface ClientFinanceSummary {
   openAmount: number
   overdueCount: number
 }
+
+export const EXPENSE_CATEGORIES = ['geral', 'ferramentas', 'marketing', 'subcontratacao', 'infraestrutura', 'impostos'] as const
+export type ExpenseCategory = (typeof EXPENSE_CATEGORIES)[number]
+
+/** Despesa do negócio — completa o ledger unificado ao lado de faturas e pagamentos. */
+export interface Expense {
+  id: string
+  description: string
+  amount: number
+  category: ExpenseCategory
+  incurredAt: string
+  createdAt: string
+}
+
+/** Uma linha do ledger unificado: fatura (faturado), pagamento (recebido) ou despesa (saída). */
+export type LedgerEntry =
+  | { kind: 'invoice'; date: string; label: string; amount: number }
+  | { kind: 'payment'; date: string; label: string; amount: number }
+  | { kind: 'expense'; id: string; date: string; label: string; amount: number }

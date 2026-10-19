@@ -9,15 +9,14 @@ import { buildInstallmentRows } from '@/lib/finance/installments'
 import { recordPaymentForLoyalty, tierForSpend } from '@/lib/finance/loyalty'
 import { getStripeClient, isStripeConfigured, STRIPE_PAYMENT_METHODS } from '@/lib/stripe/config'
 import { createAdminClient } from '@/lib/supabase/server'
+import { EXPENSE_CATEGORIES } from '@/types/finance'
 
 /**
  * Server Actions do módulo financeiro. Todas verificam a sessão (`requireUser`/`requireAdmin`) e
  * validam a entrada com Zod antes de tocar na base de dados — nenhuma confia no que vem do cliente.
  *
- * Estado da integração Stripe: as chaves ainda não estão configuradas (`isStripeConfigured` fica
- * false), por isso `createCheckoutSession` devolve um resultado "mock" em vez de chamar a Stripe a
- * sério. O resto (aplicar desconto, parcelar, marcar pago externamente, fidelização) já é real —
- * não depende da Stripe, só de decisões do admin.
+ * `createCheckoutSession` só cai no resultado "mock" se `isStripeConfigured` for false (sem chaves
+ * no ambiente); em produção a Stripe já está ligada a sério.
  */
 
 export type FinanceResult = { ok: true } | { ok: false; message: string }
@@ -330,4 +329,43 @@ export async function addLoyaltyPoints(input: unknown): Promise<FinanceResult> {
   revalidatePath('/admin/finance')
   revalidatePath('/area-cliente', 'layout')
   return { ok: true }
+}
+
+const createExpenseSchema = z.object({
+  description: z.string().trim().min(2, 'Descreva a despesa.').max(200),
+  amount: z.coerce.number('Indique um valor.').positive('O valor tem de ser maior que zero.').max(1_000_000),
+  category: z.enum(EXPENSE_CATEGORIES),
+  incurredAt: z.iso.date(),
+})
+
+/** Regista uma despesa do negócio — entra no ledger unificado ao lado de faturas e pagamentos. */
+export async function createExpense(input: unknown): Promise<FinanceResult> {
+  const admin = await requireAdmin()
+  const parsed = createExpenseSchema.safeParse(input)
+  if (!parsed.success) return { ok: false, message: parsed.error.issues[0]?.message ?? 'Dados inválidos.' }
+
+  const db = createAdminClient()
+  const { error } = await db
+    .from('expenses')
+    .insert({ description: parsed.data.description, amount: parsed.data.amount, category: parsed.data.category, incurred_at: parsed.data.incurredAt, created_by: admin.id })
+  if (error) return { ok: false, message: 'Não foi possível registar a despesa.' }
+
+  await logAudit({ admin, action: 'CREATE_EXPENSE', resource: 'financeiro', details: parsed.data })
+  revalidatePath('/admin/finance')
+  return { ok: true }
+}
+
+/** Remove uma despesa registada por engano. */
+export async function deleteExpense(formData: FormData): Promise<void> {
+  const admin = await requireAdmin()
+  const id = z.uuid().safeParse(formData.get('id'))
+  if (!id.success) return
+
+  const db = createAdminClient()
+  const { data: before } = await db.from('expenses').select('description, amount, category, incurred_at').eq('id', id.data).maybeSingle()
+  const { error } = await db.from('expenses').delete().eq('id', id.data)
+  if (error) return
+
+  await logAudit({ admin, action: 'DELETE_EXPENSE', resource: 'financeiro', targetId: id.data, details: { before } })
+  revalidatePath('/admin/finance')
 }

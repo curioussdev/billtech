@@ -1,13 +1,14 @@
 import type { Metadata } from 'next'
 import Link from 'next/link'
-import { FlaskConical } from 'lucide-react'
 import { DiscountCodesSection } from '@/components/admin/finance/discount-codes-section'
 import { FinanceKpiCards } from '@/components/admin/finance/kpi-cards'
 import { InvoiceTable } from '@/components/admin/finance/invoice-table'
+import { LedgerSection } from '@/components/admin/finance/ledger-section'
 import { LoyaltySection } from '@/components/admin/finance/loyalty-section'
 import { Button } from '@/components/ui/button'
-import { listAllInvoices, listDiscountCodes, listFinanceSummary, listPortalClients } from '@/lib/finance/admin-queries'
+import { listAllInvoices, listDiscountCodes, listExpenses, listFinanceSummary, listPortalClients } from '@/lib/finance/admin-queries'
 import { computeFinanceKpis } from '@/lib/finance/kpis'
+import { buildLedger } from '@/lib/finance/ledger'
 import { INVOICE_STATUSES } from '@/types/finance'
 import { invoiceStatusLabels } from '@/lib/finance/labels'
 
@@ -19,8 +20,15 @@ type Search = { status?: string; cliente?: string; periodo?: string }
 
 export default async function AdminFinancePage({ searchParams }: { searchParams: Promise<Search> }) {
   const sp = await searchParams
-  const [invoices, summaries, codes, clients] = await Promise.all([listAllInvoices(), listFinanceSummary(), listDiscountCodes(), listPortalClients()])
+  const [invoices, summaries, codes, clients, expenses] = await Promise.all([
+    listAllInvoices(),
+    listFinanceSummary(),
+    listDiscountCodes(),
+    listPortalClients(),
+    listExpenses(),
+  ])
   const kpis = computeFinanceKpis(invoices, summaries)
+  const ledger = buildLedger(invoices, expenses)
 
   const now = new Date()
   const monthKey = `${now.getUTCFullYear()}-${String(now.getUTCMonth() + 1).padStart(2, '0')}`
@@ -38,17 +46,6 @@ export default async function AdminFinancePage({ searchParams }: { searchParams:
         <h1 className="text-3xl font-black tracking-tight">Financeiro</h1>
         <p className="mt-1 text-muted-foreground">Faturas, parcelamentos, descontos e fidelização — controlo de 360º.</p>
       </div>
-
-      <p role="note" className="flex items-start gap-2 rounded-lg border border-amber-500/40 bg-amber-500/10 px-3 py-2 text-sm text-amber-900 dark:text-amber-200">
-        <FlaskConical className="mt-0.5 size-4 shrink-0" aria-hidden />
-        <span>
-          <strong>Pagamentos online ainda em preparação.</strong> Faturas, descontos, parcelamentos e fidelização já são reais; falta só ligar as chaves da Stripe para os pagamentos por cartão/MB WAY/Multibanco ficarem ativos (ver{' '}
-          <Link href="/admin/logs" className="underline underline-offset-2">
-            Auditoria &amp; Logs
-          </Link>{' '}
-          para o histórico de todas as alterações feitas aqui).
-        </span>
-      </p>
 
       <FinanceKpiCards kpis={kpis} />
 
@@ -96,6 +93,16 @@ export default async function AdminFinancePage({ searchParams }: { searchParams:
         {filtered.length} {filtered.length === 1 ? 'fatura' : 'faturas'}
       </p>
       <InvoiceTable invoices={filtered} />
+
+      <section aria-labelledby="ledger" className="grid gap-4">
+        <div>
+          <h2 id="ledger" className="text-xl font-bold">
+            Ledger — Faturado, Recebido e Despesas
+          </h2>
+          <p className="text-sm text-muted-foreground">Todos os movimentos financeiros numa só linha do tempo.</p>
+        </div>
+        <LedgerSection entries={ledger} />
+      </section>
 
       <section aria-labelledby="fidelizacao" className="grid gap-4">
         <div>
