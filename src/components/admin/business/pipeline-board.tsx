@@ -16,9 +16,10 @@ import {
   type DragStartEvent,
 } from '@dnd-kit/core'
 import { ArrowRight, CalendarClock, CheckCircle2, GripVertical, User, XCircle } from 'lucide-react'
-import { moveLead } from '@/actions/pipeline'
+import { linkLeadToClient, moveLead } from '@/actions/pipeline'
 import { useToast } from '@/components/admin/crm/toast'
 import { LostDealDialog } from '@/components/admin/crm/lost-deal-dialog'
+import { SendProposalDialog } from '@/components/admin/crm/send-proposal-dialog'
 import { WinDealDialog, type WinDealPayload } from '@/components/admin/crm/win-deal-dialog'
 import { daysInStage, funnelMetrics, OPEN_STAGES, STALE_STAGE_DAYS, weightedValue } from '@/lib/admin/business'
 import { formatEUR, formatPct, leadStageLabels, sectorLabels } from '@/lib/admin/format'
@@ -36,10 +37,17 @@ const stageStyles: Record<LeadStage, string> = {
   perdido: 'border-red-500/40 bg-red-500/10',
 }
 
-type CardProps = { lead: Lead; now: Date; nextStep?: string; onMove?: (stage: LeadStage) => void }
+type CardProps = {
+  lead: Lead
+  now: Date
+  nextStep?: string
+  onMove?: (stage: LeadStage) => void
+  portalClients?: PortalClientOption[]
+  onLinkClient?: (clientId: string | null) => void
+}
 
 /** Aparência do cartão (sem hooks de arrasto): reutilizada no cartão real e na "sombra" do DragOverlay. */
-function LeadCardView({ lead, now, nextStep, onMove, handle, dragging, overlay }: CardProps & { handle: React.ReactNode; dragging?: boolean; overlay?: boolean }) {
+function LeadCardView({ lead, now, nextStep, onMove, portalClients, onLinkClient, handle, dragging, overlay }: CardProps & { handle: React.ReactNode; dragging?: boolean; overlay?: boolean }) {
   const days = daysInStage(lead, now)
   const stale = OPEN_STAGES.includes(lead.stage) && days > STALE_STAGE_DAYS
 
@@ -83,6 +91,21 @@ function LeadCardView({ lead, now, nextStep, onMove, handle, dragging, overlay }
           ))}
         </select>
       )}
+      {onLinkClient && portalClients && (
+        <select
+          value={lead.clientId ?? ''}
+          onChange={(e) => onLinkClient(e.target.value || null)}
+          aria-label={`Associar ${lead.company} a uma conta de cliente`}
+          className="h-8 rounded-md border border-input bg-background px-1.5 text-xs focus-visible:ring-2 focus-visible:ring-ring"
+        >
+          <option value="">Sem cliente associado</option>
+          {portalClients.map((c) => (
+            <option key={c.id} value={c.id}>
+              Cliente: {c.name}
+            </option>
+          ))}
+        </select>
+      )}
     </div>
   )
 }
@@ -90,7 +113,7 @@ function LeadCardView({ lead, now, nextStep, onMove, handle, dragging, overlay }
 const handleClass = 'mt-0.5 shrink-0 cursor-grab touch-none rounded p-0.5 text-muted-foreground hover:text-foreground focus-visible:ring-2 focus-visible:ring-ring active:cursor-grabbing'
 
 /** Cartão arrastável: a pega é o único alvo de arrasto, o resto do cartão (menu incluído) continua utilizável. */
-function LeadCard({ lead, now, nextStep, onMove }: CardProps) {
+function LeadCard({ lead, now, nextStep, onMove, portalClients, onLinkClient }: CardProps) {
   const { attributes, listeners, setNodeRef, isDragging } = useDraggable({ id: lead.id })
   return (
     <li ref={setNodeRef}>
@@ -99,6 +122,8 @@ function LeadCard({ lead, now, nextStep, onMove }: CardProps) {
         now={now}
         nextStep={nextStep}
         onMove={onMove}
+        portalClients={portalClients}
+        onLinkClient={onLinkClient}
         dragging={isDragging}
         handle={
           <button type="button" {...attributes} {...listeners} aria-label={`Arrastar ${lead.company}`} className={handleClass}>
@@ -110,7 +135,23 @@ function LeadCard({ lead, now, nextStep, onMove }: CardProps) {
   )
 }
 
-function Column({ stage, leads, now, nextSteps, onMove }: { stage: LeadStage; leads: Lead[]; now: Date; nextSteps: Record<string, string>; onMove: (id: string, stage: LeadStage) => void }) {
+function Column({
+  stage,
+  leads,
+  now,
+  nextSteps,
+  portalClients,
+  onMove,
+  onLinkClient,
+}: {
+  stage: LeadStage
+  leads: Lead[]
+  now: Date
+  nextSteps: Record<string, string>
+  portalClients: PortalClientOption[]
+  onMove: (id: string, stage: LeadStage) => void
+  onLinkClient: (id: string, clientId: string | null) => void
+}) {
   const { setNodeRef, isOver } = useDroppable({ id: stage })
   const total = leads.reduce((acc, l) => acc + l.estimatedValue, 0)
   const weighted = OPEN_STAGES.includes(stage) ? weightedValue(leads) : null
@@ -133,7 +174,7 @@ function Column({ stage, leads, now, nextSteps, onMove }: { stage: LeadStage; le
       </header>
       <ul className="grid flex-1 content-start gap-2" aria-label={`Leads em ${leadStageLabels[stage]}`}>
         {leads.map((lead) => (
-          <LeadCard key={lead.id} lead={lead} now={now} nextStep={nextSteps[lead.id]} onMove={(s) => onMove(lead.id, s)} />
+          <LeadCard key={lead.id} lead={lead} now={now} nextStep={nextSteps[lead.id]} portalClients={portalClients} onMove={(s) => onMove(lead.id, s)} onLinkClient={(c) => onLinkClient(lead.id, c)} />
         ))}
         {leads.length === 0 && <li className="rounded-lg border border-dashed border-border p-4 text-center text-xs text-muted-foreground">Largue um lead aqui</li>}
       </ul>
@@ -141,25 +182,40 @@ function Column({ stage, leads, now, nextSteps, onMove }: { stage: LeadStage; le
   )
 }
 
+export type PortalClientOption = { id: string; name: string }
+
 export function PipelineBoard({
   initialLeads,
   nowIso,
   ltv,
   acquisitionSpend,
   nextSteps,
+  portalClients,
 }: {
   initialLeads: Lead[]
   nowIso: string
   ltv: number
   acquisitionSpend: number
   nextSteps: Record<string, string>
+  portalClients: PortalClientOption[]
 }) {
   const now = useMemo(() => new Date(nowIso), [nowIso])
   const [leads, setLeads] = useState(initialLeads)
   const [activeId, setActiveId] = useState<string | null>(null)
   const [announcement, setAnnouncement] = useState('')
   const [pendingClose, setPendingClose] = useState<{ leadId: string; leadLabel: string; stage: 'ganho' | 'perdido' } | null>(null)
+  const [pendingProposal, setPendingProposal] = useState<{ leadId: string; leadLabel: string; defaultValue: number } | null>(null)
   const { push } = useToast()
+
+  async function linkClient(id: string, clientId: string | null) {
+    const previous = leads
+    setLeads((all) => all.map((l) => (l.id === id ? { ...l, ...(clientId ? { clientId } : { clientId: undefined }) } : l)))
+    const result = await linkLeadToClient(id, clientId)
+    if (!result.ok) {
+      setLeads(previous)
+      setAnnouncement(`Não foi possível associar o cliente: ${result.message}`)
+    }
+  }
 
   const sensors = useSensors(
     useSensor(PointerSensor, { activationConstraint: { distance: 6 } }),
@@ -188,7 +244,8 @@ export function PipelineBoard({
   }
 
   // Ganho/Perdido são etapas terminais: exigem confirmação (mini-form ou motivo) antes de mover.
-  // Enquanto o modal está aberto o cartão fica na coluna original (só mutamos `leads` ao confirmar).
+  // Proposta exige o valor proposto. Enquanto o modal está aberto o cartão fica na coluna original
+  // (só mutamos `leads` ao confirmar).
   function requestStageChange(id: string, stage: LeadStage) {
     const lead = leads.find((l) => l.id === id)
     if (!lead || lead.stage === stage) return
@@ -196,7 +253,20 @@ export function PipelineBoard({
       setPendingClose({ leadId: id, leadLabel: lead.company, stage })
       return
     }
+    if (stage === 'proposta') {
+      setPendingProposal({ leadId: id, leadLabel: lead.company, defaultValue: lead.estimatedValue })
+      return
+    }
     void move(id, stage)
+  }
+
+  function confirmProposal(value: number) {
+    if (!pendingProposal) return
+    const { leadId, leadLabel } = pendingProposal
+    setLeads((all) => all.map((l) => (l.id === leadId ? { ...l, stage: 'proposta', stageEnteredAt: now.toISOString(), estimatedValue: value } : l)))
+    setAnnouncement(`${leadLabel} movido para Proposta Enviada.`)
+    push(`Proposta enviada: ${leadLabel} — ${formatEUR(value)}.`, 'success')
+    setPendingProposal(null)
   }
 
   function confirmWin(payload: WinDealPayload) {
@@ -257,7 +327,7 @@ export function PipelineBoard({
         <div className="-mx-4 overflow-x-auto px-4 pb-4 sm:-mx-8 sm:px-8">
           <div className="flex gap-4">
             {LEAD_STAGES.map((stage) => (
-              <Column key={stage} stage={stage} leads={byStage[stage]} now={now} nextSteps={nextSteps} onMove={requestStageChange} />
+              <Column key={stage} stage={stage} leads={byStage[stage]} now={now} nextSteps={nextSteps} portalClients={portalClients} onMove={requestStageChange} onLinkClient={linkClient} />
             ))}
           </div>
         </div>
@@ -277,6 +347,14 @@ export function PipelineBoard({
         onConfirm={confirmWin}
       />
       <LostDealDialog open={pendingClose?.stage === 'perdido'} leadId={pendingClose?.leadId ?? ''} leadLabel={pendingClose?.leadLabel ?? ''} onClose={() => setPendingClose(null)} onConfirm={confirmLoss} />
+      <SendProposalDialog
+        open={pendingProposal !== null}
+        leadId={pendingProposal?.leadId ?? ''}
+        leadLabel={pendingProposal?.leadLabel ?? ''}
+        defaultValue={pendingProposal?.defaultValue ?? 0}
+        onClose={() => setPendingProposal(null)}
+        onConfirm={confirmProposal}
+      />
     </div>
   )
 }

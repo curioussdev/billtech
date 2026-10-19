@@ -24,8 +24,8 @@ const NEXT_STEPS = [
   'Pedir referências do setor',
 ]
 
-const FIRST_TOUCH_TYPE: Record<LeadChannel, InteractionType> = { organico: 'email', indicacao: 'cold_call', linkedin: 'email', whatsapp: 'whatsapp' }
-const FOLLOWUP_TYPE: Record<LeadChannel, InteractionType> = { organico: 'cold_call', indicacao: 'cold_call', linkedin: 'cold_call', whatsapp: 'whatsapp' }
+const FIRST_TOUCH_TYPE: Record<LeadChannel, InteractionType> = { organico: 'email', indicacao: 'cold_call', whatsapp: 'whatsapp', telefone: 'cold_call', instagram: 'email' }
+const FOLLOWUP_TYPE: Record<LeadChannel, InteractionType> = { organico: 'cold_call', indicacao: 'cold_call', whatsapp: 'whatsapp', telefone: 'cold_call', instagram: 'email' }
 
 function buildInteractions(lead: (typeof mockLeads)[number]): Interaction[] {
   const out: Interaction[] = []

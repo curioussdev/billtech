@@ -29,8 +29,9 @@ export const leadStageLabels: Record<LeadStage, string> = {
 export const leadChannelLabels: Record<LeadChannel, string> = {
   organico: 'Orgânico',
   indicacao: 'Indicação',
-  linkedin: 'LinkedIn',
   whatsapp: 'WhatsApp',
+  telefone: 'Telefone',
+  instagram: 'Instagram',
 }
 
 // Garante em tempo de compilação que os mapas cobrem todas as chaves

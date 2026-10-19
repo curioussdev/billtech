@@ -4,11 +4,12 @@ import { NewLeadModal } from '@/components/admin/crm/new-lead-modal'
 import { ACQUISITION_SPEND_90D } from '@/data/mock/dashboard'
 import { businessNow, listInteractions, listLeads, listProjects } from '@/lib/admin/analytics'
 import { funnelMetrics, latestNextStepByLead } from '@/lib/admin/business'
+import { listPortalClients } from '@/lib/finance/admin-queries'
 
 export const metadata: Metadata = { title: 'Pipeline de Vendas' }
 
 export default async function PipelinePage() {
-  const [leads, projects, interactions] = await Promise.all([listLeads(), listProjects(), listInteractions()])
+  const [leads, projects, interactions, portalClients] = await Promise.all([listLeads(), listProjects(), listInteractions(), listPortalClients()])
   // O LTV vem do histórico de projetos (não muda ao arrastar leads)
   const { ltv } = funnelMetrics(leads, projects, ACQUISITION_SPEND_90D)
   const nextSteps = latestNextStepByLead(interactions)
@@ -22,7 +23,14 @@ export default async function PipelinePage() {
         </div>
         <NewLeadModal />
       </div>
-      <PipelineBoard initialLeads={leads} nowIso={businessNow().toISOString()} ltv={ltv} acquisitionSpend={ACQUISITION_SPEND_90D} nextSteps={nextSteps} />
+      <PipelineBoard
+        initialLeads={leads}
+        nowIso={businessNow().toISOString()}
+        ltv={ltv}
+        acquisitionSpend={ACQUISITION_SPEND_90D}
+        nextSteps={nextSteps}
+        portalClients={portalClients.map((c) => ({ id: c.id, name: c.name }))}
+      />
     </div>
   )
 }

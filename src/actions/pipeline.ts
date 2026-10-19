@@ -5,6 +5,7 @@ import { redirect } from 'next/navigation'
 import { z } from 'zod'
 import { logAudit } from '@/lib/audit'
 import { requireAdmin } from '@/lib/auth'
+import { formatEUR } from '@/lib/admin/format'
 import { isSupabaseConfigured } from '@/lib/supabase/config'
 import { createAdminClient } from '@/lib/supabase/server'
 import { DEAL_PROJECT_TYPES, LOSS_REASONS } from '@/types/crm'
@@ -49,6 +50,74 @@ export async function moveLead(leadId: string, stage: string): Promise<LeadMoveR
       return { ok: false, message: 'Não foi possível guardar a mudança de etapa.' }
     }
   }
+  return { ok: true }
+}
+
+const proposalSchema = z.object({
+  leadId: z.string().min(1).max(60),
+  leadLabel: z.string().min(1).max(160),
+  value: z.coerce.number('Indique um valor.').min(0).max(1_000_000),
+  validUntil: z.string().optional(),
+  notes: z.string().trim().max(500).optional(),
+})
+
+export type ProposalResult = { ok: true } | { ok: false; message: string }
+
+/**
+ * Envia a proposta: move para "Proposta Enviada" e fixa o valor proposto (pode ser diferente do
+ * valor estimado inicial). Fica registado como interação, para ficar no histórico e alimentar o
+ * "próxima ação" do cartão — não sobrescrevemos o valor outra vez sem rasto quando o negócio for
+ * fechado (o valor final do negócio, possivelmente diferente após negociação, é capturado à parte
+ * em "Marcar como Ganho").
+ */
+export async function sendProposal(input: unknown): Promise<ProposalResult> {
+  const admin = await requireAdmin()
+  const parsed = proposalSchema.safeParse(input)
+  if (!parsed.success) return { ok: false, message: parsed.error.issues[0]?.message ?? 'Dados inválidos.' }
+  const { leadId, leadLabel, value, validUntil, notes } = parsed.data
+
+  if (isLive()) {
+    const db = createAdminClient()
+    const { error } = await db.from('leads').update({ stage: 'proposta', stage_entered_at: new Date().toISOString(), estimated_value: value }).eq('id', leadId)
+    if (error && !isMissingTable(error)) {
+      console.error('[pipeline] envio de proposta falhou:', error)
+      return { ok: false, message: 'Não foi possível registar a proposta.' }
+    }
+
+    const noteParts = [`Proposta enviada: ${formatEUR(value)}`]
+    if (validUntil) noteParts.push(`válida até ${new Date(validUntil).toLocaleDateString('pt-PT', { timeZone: 'UTC' })}`)
+    if (notes) noteParts.push(notes)
+
+    const { error: interactionError } = await db.from('interactions').insert({
+      lead_id: leadId,
+      lead_label: leadLabel,
+      type: 'email',
+      occurred_at: new Date().toISOString(),
+      outcome: 'interessado',
+      notes: noteParts.join(' · '),
+      next_step: validUntil ? `Fazer follow-up até ${new Date(validUntil).toLocaleDateString('pt-PT', { timeZone: 'UTC' })}` : '',
+      admin_id: admin.id,
+      admin_email: admin.email,
+    })
+    if (interactionError) console.error('[pipeline] registo da interação de proposta falhou:', interactionError)
+  }
+
+  return { ok: true }
+}
+
+const linkClientSchema = z.object({ leadId: z.string().min(1).max(60), clientId: z.uuid().nullable() })
+
+/** Associa (ou desassocia) um lead a uma conta de cliente já existente no portal — mesma empresa em dois sítios diferentes. */
+export async function linkLeadToClient(leadId: string, clientId: string | null): Promise<LeadMoveResult> {
+  const admin = await requireAdmin()
+  const parsed = linkClientSchema.safeParse({ leadId, clientId })
+  if (!parsed.success) return { ok: false, message: 'Pedido inválido.' }
+
+  const db = createAdminClient()
+  const { error } = await db.from('leads').update({ client_id: parsed.data.clientId }).eq('id', parsed.data.leadId)
+  if (error) return { ok: false, message: 'Não foi possível associar o cliente.' }
+
+  await logAudit({ admin, action: 'LINK_LEAD_CLIENT', resource: 'negocio', targetId: parsed.data.leadId, details: { clientId: parsed.data.clientId } })
   return { ok: true }
 }
 

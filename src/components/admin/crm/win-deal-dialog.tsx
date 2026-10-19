@@ -68,8 +68,9 @@ export function WinDealDialog({
             </select>
           </div>
           <div className="grid gap-1.5">
-            <Label htmlFor="win-value">Valor (€)</Label>
+            <Label htmlFor="win-value">Valor final fechado (€)</Label>
             <Input id="win-value" type="number" min={0} step="1" required value={value} onChange={(e) => setValue(e.target.value)} className="h-11 text-base" />
+            <p className="text-xs text-muted-foreground">Pode ser diferente do valor proposto — é o que foi negociado e fechado de verdade.</p>
           </div>
           {error && (
             <p role="alert" className="text-sm font-medium text-destructive">

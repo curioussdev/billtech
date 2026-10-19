@@ -3,7 +3,7 @@ import { businessNow, listGoals, listInteractions, listLeads } from '@/lib/admin
 import { sectorLabels } from '@/lib/admin/format'
 import { buildReport } from '@/lib/admin/reports'
 import { funnelMetrics, OPEN_STAGES } from '@/lib/admin/business'
-import { calculatePace, projectYearlyRevenue } from '@/lib/crm/analytics'
+import { calculatePace, isoWeekKey, projectYearlyRevenue } from '@/lib/crm/analytics'
 import { lossReasonLabels } from '@/lib/crm/labels'
 import type { GoalMetric, GoalPeriodType, LossReason } from '@/types/crm'
 
@@ -39,9 +39,12 @@ export interface CrmSectorRevenue {
 export interface CrmOverview {
   asOf: string
   revenueMonth: { current: number; target: number; progressPct: number }
-  winRate: { value: number; changePct: number | null; won: number; decided: number }
+  winRate: { value: number; target: number; changePct: number | null; won: number; decided: number }
   coldCallsToday: { current: number; target: number; pacePct: number }
   meetingsToday: { current: number; target: number }
+  coldCallsWeek: { current: number; target: number; pacePct: number }
+  meetingsWeek: { current: number; target: number; pacePct: number }
+  proposalsWeek: { current: number; target: number; pacePct: number }
   pipeline: { value: number; openCount: number; qualifying: number; finalNegotiation: number }
   dailySeries: CrmDailyPoint[]
   funnel: CrmFunnelStage[]
@@ -54,6 +57,7 @@ export async function getCrmOverview(): Promise<CrmOverview> {
   const [leads, interactions, goals] = await Promise.all([listLeads(), listInteractions(), listGoals()])
   const now = businessNow()
   const todayKey = now.toISOString().slice(0, 10)
+  const weekKey = isoWeekKey(now)
   const monthKey = now.toISOString().slice(0, 7)
   const yearKey = String(now.getUTCFullYear())
 
@@ -75,6 +79,16 @@ export async function getCrmOverview(): Promise<CrmOverview> {
   const meetingsToday = interactions.filter((i) => i.occurredAt.startsWith(todayKey) && i.outcome === 'agendado').length
   const coldCallsTarget = goalTarget('diaria', 'cold_calls', todayKey, 50)
   const meetingsTarget = goalTarget('diaria', 'meetings', todayKey, 2)
+
+  // Submetas semanais: cold calls, reuniões e valor em propostas enviadas
+  const coldCallsWeekCurrent = interactions.filter((i) => i.type === 'cold_call' && isoWeekKey(new Date(i.occurredAt)) === weekKey).length
+  const meetingsWeekCurrent = interactions.filter((i) => i.outcome === 'agendado' && isoWeekKey(new Date(i.occurredAt)) === weekKey).length
+  const proposalsWeekCurrent = leads.filter((l) => l.stage === 'proposta' && isoWeekKey(new Date(l.stageEnteredAt)) === weekKey).reduce((sum, l) => sum + l.estimatedValue, 0)
+  const coldCallsWeekTarget = goalTarget('semanal', 'cold_calls', weekKey, 250)
+  const meetingsWeekTarget = goalTarget('semanal', 'meetings', weekKey, 10)
+  const proposalsWeekTarget = goalTarget('semanal', 'proposals_value', weekKey, 5_000)
+
+  const winRateTarget = goalTarget('mensal', 'win_rate', monthKey, 30)
 
   // Pipeline (reaproveita funnelMetrics; acquisitionSpend=0 porque não usamos CAC/LTV aqui)
   const funnel = funnelMetrics(leads, [], 0)
@@ -124,9 +138,12 @@ export async function getCrmOverview(): Promise<CrmOverview> {
   return {
     asOf: now.toISOString(),
     revenueMonth: { current: revenueMonthCurrent, target: revenueMonthTarget, progressPct: calculatePace(revenueMonthCurrent, revenueMonthTarget) },
-    winRate: { value: report.closeRatePct.value, changePct: report.closeRatePct.changePct, won: report.dealsWon.value, decided: report.dealsWon.value + report.dealsLost.value },
+    winRate: { value: report.closeRatePct.value, target: winRateTarget, changePct: report.closeRatePct.changePct, won: report.dealsWon.value, decided: report.dealsWon.value + report.dealsLost.value },
     coldCallsToday: { current: coldCallsToday, target: coldCallsTarget, pacePct: calculatePace(coldCallsToday, coldCallsTarget) },
     meetingsToday: { current: meetingsToday, target: meetingsTarget },
+    coldCallsWeek: { current: coldCallsWeekCurrent, target: coldCallsWeekTarget, pacePct: calculatePace(coldCallsWeekCurrent, coldCallsWeekTarget) },
+    meetingsWeek: { current: meetingsWeekCurrent, target: meetingsWeekTarget, pacePct: calculatePace(meetingsWeekCurrent, meetingsWeekTarget) },
+    proposalsWeek: { current: proposalsWeekCurrent, target: proposalsWeekTarget, pacePct: calculatePace(proposalsWeekCurrent, proposalsWeekTarget) },
     pipeline: { value: funnel.pipelineValue, openCount: OPEN_STAGES.reduce((sum, stage) => sum + funnel.byStage[stage].count, 0), qualifying, finalNegotiation },
     dailySeries,
     funnel: funnelStages,

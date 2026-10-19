@@ -11,6 +11,7 @@ import {
   LayoutDashboard,
   MessageSquareQuote,
   NotebookText,
+  Radar,
   ScrollText,
   Search,
   Settings,
@@ -82,6 +83,7 @@ export const adminNav: NavGroup[] = [
   {
     label: 'Sistema',
     items: [
+      { title: 'Centro de Comando', href: '/admin/command-center', icon: Radar },
       { title: 'Configurações', href: '/admin/definicoes', icon: Settings },
       { title: 'Auditoria & Logs', href: '/admin/logs', icon: ScrollText },
     ],

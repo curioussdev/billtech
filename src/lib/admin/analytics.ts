@@ -77,6 +77,7 @@ type LeadRow = {
   project_name: string | null
   project_type: DealProjectType | null
   loss_reason: LossReason | null
+  client_id: string | null
 }
 
 const isLive = () => isSupabaseConfigured && Boolean(process.env.SUPABASE_SERVICE_ROLE_KEY)
@@ -198,6 +199,7 @@ export async function listLeads(): Promise<Lead[]> {
       ...(r.project_name ? { projectName: r.project_name } : {}),
       ...(r.project_type ? { projectType: r.project_type } : {}),
       ...(r.loss_reason ? { lossReason: r.loss_reason } : {}),
+      ...(r.client_id ? { clientId: r.client_id } : {}),
     }))
   } catch (error) {
     console.error('[crm] leitura de leads falhou; a usar dados de demonstração:', error)
@@ -205,8 +207,19 @@ export async function listLeads(): Promise<Lead[]> {
   }
 }
 
+type MeetingRow = { id: string; lead_id: string; title: string; start: string; duration_min: number; kind: Meeting['kind'] }
+
+/** Reuniões agendadas com leads; lê a tabela real `meetings`; sem Supabase configurado, cai nos dados de demonstração. */
 export async function listMeetings(): Promise<Meeting[]> {
-  return mockMeetings
+  if (!isLive()) return mockMeetings
+  try {
+    const { data, error } = await createAdminClient().from('meetings').select('id, lead_id, title, start, duration_min, kind').order('start', { ascending: true })
+    if (error) throw error
+    return (data as MeetingRow[]).map((r) => ({ id: r.id, leadId: r.lead_id, title: r.title, start: r.start, durationMin: r.duration_min, kind: r.kind }))
+  } catch (error) {
+    console.error('[crm] leitura de meetings falhou; a usar dados de demonstração:', error)
+    return mockMeetings
+  }
 }
 
 /** Data "de hoje" dos dados de negócio. */

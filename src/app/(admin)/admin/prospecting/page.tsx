@@ -17,9 +17,6 @@ export default async function ProspectingPage() {
         </div>
         <NewLeadModal />
       </div>
-      <p role="note" className="rounded-lg border border-border bg-muted/40 px-3 py-2 text-sm text-muted-foreground">
-        As reuniões agendadas aqui ainda não ficam guardadas — ao atualizar a página voltam ao calendário de exemplo.
-      </p>
       <ProspectingWorkspace initialLeads={leads} initialMeetings={meetings} nowIso={businessNow().toISOString()} />
     </div>
   )
