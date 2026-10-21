@@ -45,11 +45,12 @@ export const AUDIT_ACTIONS = [
   'DELETE_EXTERNAL_SITE',
   'UPLOAD_PROJECT_DOCUMENT',
   'DELETE_PROJECT_DOCUMENT',
+  'CREATE_CLIENT',
 ] as const
 export type AuditAction = (typeof AUDIT_ACTIONS)[number]
 
 /** Módulos/recursos afetados (campo target_resource). */
-export const AUDIT_RESOURCES = ['sessao', 'seguranca', 'conteudo_landing', 'projetos_cases', 'media', 'definicoes', 'permissoes_cliente', 'pedidos', 'projetos_cliente', 'comunicacoes', 'negocio', 'financeiro'] as const
+export const AUDIT_RESOURCES = ['sessao', 'seguranca', 'conteudo_landing', 'projetos_cases', 'media', 'definicoes', 'permissoes_cliente', 'pedidos', 'projetos_cliente', 'comunicacoes', 'negocio', 'financeiro', 'clientes'] as const
 export type AuditResource = (typeof AUDIT_RESOURCES)[number]
 
 export type AuditEntry = {

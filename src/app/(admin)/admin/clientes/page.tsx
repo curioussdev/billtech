@@ -1,6 +1,7 @@
 import type { Metadata } from 'next'
 import Link from 'next/link'
 import { ArrowRight } from 'lucide-react'
+import { NewClientModal } from '@/components/admin/clientes/new-client-modal'
 import { formatDate, OPEN_STATUSES } from '@/lib/portal/labels'
 import { getProjects, getRequests } from '@/lib/portal/queries'
 import { createClient } from '@/lib/supabase/server'
@@ -16,9 +17,14 @@ export default async function ClientsAdminPage() {
   ])
 
   return (
-    <div className="mx-auto max-w-4xl">
-      <h1 className="text-3xl font-black tracking-tight">Clientes</h1>
-      <p className="mb-8 mt-2 text-muted-foreground">Contas criadas em «Entrar → Criar conta». Abra a ficha para gerir projetos, pedidos e acessos.</p>
+    <div className="mx-auto grid max-w-4xl gap-6">
+      <div className="flex flex-wrap items-start justify-between gap-3">
+        <div>
+          <h1 className="text-3xl font-black tracking-tight">Clientes</h1>
+          <p className="mt-1 text-muted-foreground">Contas criadas em «Entrar → Criar conta» ou diretamente por si. Abra a ficha para gerir projetos, pedidos e acessos.</p>
+        </div>
+        <NewClientModal />
+      </div>
 
       {(profiles ?? []).length === 0 ? (
         <p className="rounded-2xl border border-dashed border-border p-6 text-muted-foreground">Ainda não há clientes registados.</p>
