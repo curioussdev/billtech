@@ -4,12 +4,12 @@ import { revalidatePath } from 'next/cache'
 import { z } from 'zod'
 import { siteUrl } from '@/data/site'
 import { logAudit } from '@/lib/audit'
-import { requireAdmin, requireUser } from '@/lib/auth'
+import { FORBIDDEN_MESSAGE, requireAdmin, requireSuperAdminForAction, requireUser } from '@/lib/auth'
 import { sendEmail } from '@/lib/contact-delivery'
 import { emailLayout, escapeHtml } from '@/lib/email-template'
 import { buildInstallmentRows } from '@/lib/finance/installments'
 import { formatEUR } from '@/lib/finance/labels'
-import { recordPaymentForLoyalty, tierForSpend } from '@/lib/finance/loyalty'
+import { recordPaymentForLoyalty, reverseLoyaltyForPayment, tierForSpend } from '@/lib/finance/loyalty'
 import { type InstallmentRow, type PaymentRow, mapInstallment, mapPayment } from '@/lib/finance/mappers'
 import { paymentProgress } from '@/lib/finance/progress'
 import { getStripeClient, isStripeConfigured, STRIPE_PAYMENT_METHODS } from '@/lib/stripe/config'
@@ -336,6 +336,70 @@ export async function markInvoicePaidExternally(input: unknown): Promise<Finance
   }
 
   await logAudit({ admin, action: 'MARK_INVOICE_PAID_EXTERNALLY', resource: 'financeiro', targetId: invoice.id, details: { mode, method: parsed.data.method, amount: settledAmount, installmentId, notes: notes ?? null } })
+  revalidatePath('/admin/finance')
+  revalidatePath('/area-cliente', 'layout')
+  return { ok: true }
+}
+
+const undoPaymentSchema = z.object({ paymentId: z.uuid() })
+
+/**
+ * Apaga um pagamento registado por engano (nunca aconteceu de verdade — não é um reembolso de
+ * dinheiro recebido, é a correção de um erro de registo). Exige Super Admin: é a ação financeira
+ * mais sensível do sistema (remove dinheiro do histórico), por isso fica reservada desde o início,
+ * ao contrário de `markInvoicePaidExternally` (registo normal, só Admin).
+ *
+ * Recalcula tudo a partir do livro-razão `payments` que sobra (nunca confia em sinalizadores
+ * desatualizados): o estado da fatura (paga/pendente/atrasada consoante o que falta e o vencimento),
+ * o estado de cada parcela (alocação pelo valor realmente pago, preservando como paga qualquer
+ * parcela com o seu próprio pagamento direto ainda existente) e a fidelização do cliente.
+ */
+export async function undoPayment(input: unknown): Promise<FinanceResult> {
+  const admin = await requireSuperAdminForAction({ action: 'UNDO_PAYMENT', resource: 'financeiro' })
+  if (!admin) return { ok: false, message: FORBIDDEN_MESSAGE }
+  const parsed = undoPaymentSchema.safeParse(input)
+  if (!parsed.success) return { ok: false, message: 'Pedido inválido.' }
+
+  const db = createAdminClient()
+  const { data: payment } = await db.from('payments').select('*').eq('id', parsed.data.paymentId).maybeSingle()
+  if (!payment || payment.status !== 'sucesso') return { ok: false, message: 'Pagamento não encontrado, ou já não está ativo.' }
+
+  const { data: invoice } = await db.from('invoices').select('*').eq('id', payment.invoice_id).maybeSingle()
+  if (!invoice) return { ok: false, message: 'Fatura não encontrada.' }
+
+  await db.from('payments').delete().eq('id', payment.id)
+
+  const { data: remainingPayments } = await db.from('payments').select('amount, status').eq('invoice_id', invoice.id)
+  const paidNow = (remainingPayments ?? []).filter((p) => p.status === 'sucesso').reduce((sum, p) => sum + p.amount, 0)
+  const fullyPaid = paidNow >= (invoice.final_amount as number) - 0.01
+  const today = new Date().toISOString().slice(0, 10)
+  const newInvoiceStatus = fullyPaid ? 'pago' : invoice.due_date < today ? 'atrasado' : 'pendente'
+  await db.from('invoices').update({ status: newInvoiceStatus, updated_at: new Date().toISOString() }).eq('id', invoice.id)
+
+  if (invoice.payment_type === 'parcelado') {
+    const [{ data: installments }, { data: directPayments }] = await Promise.all([
+      db.from('installments').select('*').eq('invoice_id', invoice.id).order('installment_number', { ascending: true }),
+      db.from('payments').select('installment_id').eq('invoice_id', invoice.id).eq('status', 'sucesso').not('installment_id', 'is', null),
+    ])
+    const directlyPaidIds = new Set((directPayments ?? []).map((p) => p.installment_id as string))
+    let cumulative = 0
+    for (const inst of installments ?? []) {
+      cumulative += inst.amount
+      const shouldBePaid = directlyPaidIds.has(inst.id) || cumulative <= paidNow + 0.01
+      const newInstStatus = shouldBePaid ? 'pago' : inst.due_date < today ? 'atrasado' : 'pendente'
+      if (newInstStatus !== inst.status) await db.from('installments').update({ status: newInstStatus }).eq('id', inst.id)
+    }
+  }
+
+  await reverseLoyaltyForPayment(db, invoice.client_id, payment.amount)
+
+  await logAudit({
+    admin,
+    action: 'UNDO_PAYMENT',
+    resource: 'financeiro',
+    targetId: invoice.id,
+    details: { paymentId: payment.id, amount: payment.amount, method: payment.payment_method, paidAt: payment.paid_at, originallyRegisteredBy: payment.registered_by },
+  })
   revalidatePath('/admin/finance')
   revalidatePath('/area-cliente', 'layout')
   return { ok: true }

@@ -17,3 +17,17 @@ export async function recordPaymentForLoyalty(db: ReturnType<typeof createAdminC
   await db.from('client_loyalty').upsert({ client_id: clientId, total_spent: totalSpent, loyalty_points: loyaltyPoints, loyalty_tier: loyaltyTier, updated_at: new Date().toISOString() })
   return { totalSpent, loyaltyPoints, loyaltyTier }
 }
+
+/**
+ * Inverso de `recordPaymentForLoyalty` — chamado ao desfazer um pagamento registado por engano
+ * (nunca aconteceu de verdade). Nunca desce abaixo de zero, mesmo que a conta já tenha sido alterada
+ * manualmente entretanto (ex.: pontos de bónus oferecidos à parte).
+ */
+export async function reverseLoyaltyForPayment(db: ReturnType<typeof createAdminClient>, clientId: string, amountEur: number) {
+  const { data: current } = await db.from('client_loyalty').select('*').eq('client_id', clientId).maybeSingle()
+  if (!current) return
+  const totalSpent = Math.max(0, current.total_spent - amountEur)
+  const loyaltyPoints = Math.max(0, current.loyalty_points - pointsForAmount(amountEur))
+  const loyaltyTier = tierForSpend(totalSpent)
+  await db.from('client_loyalty').update({ total_spent: totalSpent, loyalty_points: loyaltyPoints, loyalty_tier: loyaltyTier, updated_at: new Date().toISOString() }).eq('client_id', clientId)
+}
