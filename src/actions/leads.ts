@@ -17,6 +17,8 @@ const schema = z.object({
   sector: z.enum(SECTORS, 'Escolha um setor.'),
   channel: z.enum(LEAD_CHANNELS, 'Escolha uma origem.'),
   estimatedValue: z.coerce.number().min(0).max(1_000_000).default(0),
+  /** Campanha paga que gerou este lead — ortogonal a `channel` (ver supabase/029_marketing.sql). */
+  campaignId: z.uuid().optional(),
 })
 
 export type CreateLeadResult = { ok: true } | { ok: false; message: string }
@@ -38,6 +40,7 @@ export async function createLead(input: unknown): Promise<CreateLeadResult> {
         channel: parsed.data.channel,
         estimated_value: parsed.data.estimatedValue,
         owner: admin.email,
+        campaign_id: parsed.data.campaignId ?? null,
       })
       .select('id')
       .single()

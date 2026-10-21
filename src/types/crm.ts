@@ -40,8 +40,24 @@ export const GOAL_PERIOD_TYPES = ['diaria', 'semanal', 'mensal', 'anual'] as con
 export type GoalPeriodType = (typeof GOAL_PERIOD_TYPES)[number]
 
 /** `win_rate` e `proposals_value` são extensões ao pedido original (ColdCalls/Revenue/ConversionRate/Meetings), para cobrir a meta mensal de "30% win rate" e a meta semanal de "€5.000 em propostas". */
-export const GOAL_METRICS = ['cold_calls', 'meetings', 'revenue', 'win_rate', 'proposals_value'] as const
+export const GOAL_METRICS = ['cold_calls', 'meetings', 'revenue', 'win_rate', 'proposals_value', 'ad_spend_max', 'cpl_max', 'roas_min'] as const
 export type GoalMetric = (typeof GOAL_METRICS)[number]
+
+/**
+ * Direção de cada meta: `minimo` (o habitual — quanto mais, melhor; "fora" é ficar abaixo) vs
+ * `maximo` (um teto — quanto menos, melhor; "fora" é ultrapassar). `ad_spend_max`/`cpl_max` são os
+ * únicos tetos (módulo de Marketing, supabase/029_marketing.sql); todo o resto já era `minimo`.
+ */
+export const GOAL_METRIC_DIRECTION: Record<GoalMetric, 'minimo' | 'maximo'> = {
+  cold_calls: 'minimo',
+  meetings: 'minimo',
+  revenue: 'minimo',
+  win_rate: 'minimo',
+  proposals_value: 'minimo',
+  ad_spend_max: 'maximo',
+  cpl_max: 'maximo',
+  roas_min: 'minimo',
+}
 
 export interface Goal {
   id: string

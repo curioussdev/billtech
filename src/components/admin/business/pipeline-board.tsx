@@ -21,6 +21,7 @@ import { useToast } from '@/components/admin/crm/toast'
 import { LostDealDialog } from '@/components/admin/crm/lost-deal-dialog'
 import { SendProposalDialog } from '@/components/admin/crm/send-proposal-dialog'
 import { WinDealDialog, type WinDealPayload } from '@/components/admin/crm/win-deal-dialog'
+import { StageFunnelBars } from '@/components/admin/business/stage-funnel-bars'
 import { SearchableSelect } from '@/components/ui/combobox'
 import { daysInStage, funnelMetrics, OPEN_STAGES, STALE_STAGE_DAYS, weightedValue } from '@/lib/admin/business'
 import { formatEUR, formatPct, leadStageLabels, sectorLabels } from '@/lib/admin/format'
@@ -371,6 +372,8 @@ export function PipelineBoard({
           </div>
         ))}
       </section>
+
+      <StageFunnelBars byStage={metrics.byStage} perdido={metrics.byStage.perdido} />
 
       <p className="text-sm text-muted-foreground">Arraste os cartões pela pega, ou use o menu «Mover para» de cada cartão (funciona também com teclado e leitor de ecrã).</p>
 

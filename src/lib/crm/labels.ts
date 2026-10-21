@@ -37,6 +37,9 @@ export const goalMetricLabels: Record<GoalMetric, string> = {
   revenue: 'Receita',
   win_rate: 'Win Rate',
   proposals_value: 'Valor em propostas enviadas',
+  ad_spend_max: 'Investimento em anúncios (teto mensal)',
+  cpl_max: 'CPL — custo por lead (teto)',
+  roas_min: 'ROAS dos anúncios (piso)',
 }
 
 export const dealProjectTypeLabels: Record<DealProjectType, string> = {

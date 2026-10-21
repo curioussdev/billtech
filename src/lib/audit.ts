@@ -51,6 +51,10 @@ export const AUDIT_ACTIONS = [
   'SET_NIF',
   'RESOLVE_PROFILE_CHANGE',
   'SEND_CONTRACT',
+  'CREATE_CAMPAIGN',
+  'UPDATE_CAMPAIGN',
+  'DELETE_CAMPAIGN',
+  'LOG_CAMPAIGN_METRICS',
 ] as const
 export type AuditAction = (typeof AUDIT_ACTIONS)[number]
 

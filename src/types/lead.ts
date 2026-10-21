@@ -23,6 +23,8 @@ export interface Lead {
   owner: string
   /** Conta de cliente já existente, quando a mesma empresa/pessoa também tem acesso ao portal. */
   clientId?: string
+  /** Campanha paga que gerou este lead (opcional — leads orgânicos/indicação não têm). */
+  campaignId?: string
   /** Contactos de follow-up já feitos */
   followUps: number
   /** Horas até à primeira resposta ao lead (null = ainda sem resposta) */

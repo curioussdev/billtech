@@ -13,7 +13,7 @@ import type { Goal, GoalMetric, GoalPeriodType } from '@/types/crm'
 
 export const metadata: Metadata = { title: 'Metas' }
 
-type Row = { periodType: GoalPeriodType; metric: GoalMetric; period: string; fallback: number; unit: 'eur' | 'pct' | 'int' }
+type Row = { periodType: GoalPeriodType; metric: GoalMetric; period: string; fallback: number; unit: 'eur' | 'pct' | 'int' | 'x' }
 
 function buildRows(now: Date): Row[] {
   const dayKey = now.toISOString().slice(0, 10)
@@ -29,6 +29,9 @@ function buildRows(now: Date): Row[] {
     { periodType: 'mensal', metric: 'revenue', period: monthKey, fallback: 20_000, unit: 'eur' },
     { periodType: 'mensal', metric: 'win_rate', period: monthKey, fallback: 30, unit: 'pct' },
     { periodType: 'anual', metric: 'revenue', period: yearKey, fallback: 240_000, unit: 'eur' },
+    { periodType: 'mensal', metric: 'ad_spend_max', period: monthKey, fallback: 1_000, unit: 'eur' },
+    { periodType: 'mensal', metric: 'cpl_max', period: monthKey, fallback: 50, unit: 'eur' },
+    { periodType: 'mensal', metric: 'roas_min', period: monthKey, fallback: 3, unit: 'x' },
   ]
 }
 
@@ -79,8 +82,9 @@ export default async function GoalsPage() {
                     </Label>
                     <div className="flex items-center gap-1.5">
                       {row.unit === 'eur' && <span className="text-sm text-muted-foreground">€</span>}
-                      <Input id={inputId} name="target" type="number" min={0} step={row.unit === 'eur' ? 1 : row.unit === 'pct' ? 0.1 : 1} defaultValue={current} className="w-28" required />
+                      <Input id={inputId} name="target" type="number" min={0} step={row.unit === 'eur' ? 1 : row.unit === 'pct' || row.unit === 'x' ? 0.1 : 1} defaultValue={current} className="w-28" required />
                       {row.unit === 'pct' && <span className="text-sm text-muted-foreground">%</span>}
+                      {row.unit === 'x' && <span className="text-sm text-muted-foreground">×</span>}
                     </div>
                   </div>
                   <Button type="submit" size="sm">

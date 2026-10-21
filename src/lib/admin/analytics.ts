@@ -1,12 +1,14 @@
 import { mockDailyVisits, mockRealtime } from '@/data/mock/dashboard'
 import { mockGoals, mockInteractions } from '@/data/mock/crm'
 import { mockLeads, mockMeetings } from '@/data/mock/leads'
+import { mockCampaignMetrics, mockCampaigns } from '@/data/mock/marketing'
 import { mockProjects } from '@/data/mock/projects'
 import { isSupabaseConfigured } from '@/lib/supabase/config'
 import { createAdminClient } from '@/lib/supabase/server'
 import type { DashboardOverview, MonthlyRevenuePoint, OnlinePage, PageStat, RealtimeUsers, SourceStat, TimeSeriesPoint } from '@/types/analytics'
 import type { DealProjectType, Goal, Interaction, LossReason } from '@/types/crm'
 import type { Lead, Meeting } from '@/types/lead'
+import type { Campaign, CampaignDailyMetric } from '@/types/marketing'
 import { PROJECT_STATUSES, SECTORS, type ClientProject, type ProjectStatus } from '@/types/project'
 
 type InteractionRow = {
@@ -78,6 +80,7 @@ type LeadRow = {
   project_type: DealProjectType | null
   loss_reason: LossReason | null
   client_id: string | null
+  campaign_id: string | null
 }
 
 const isLive = () => isSupabaseConfigured && Boolean(process.env.SUPABASE_SERVICE_ROLE_KEY)
@@ -225,6 +228,7 @@ export async function listLeads(): Promise<Lead[]> {
       ...(r.project_type ? { projectType: r.project_type } : {}),
       ...(r.loss_reason ? { lossReason: r.loss_reason } : {}),
       ...(r.client_id ? { clientId: r.client_id } : {}),
+      ...(r.campaign_id ? { campaignId: r.campaign_id } : {}),
     }))
   } catch (error) {
     console.error('[crm] leitura de leads falhou; a usar dados de demonstração:', error)
@@ -303,6 +307,36 @@ export async function getDashboardOverview(): Promise<DashboardOverview> {
     projects: { active: byStatus.em_desenvolvimento + byStatus.em_teste, byStatus },
     revenueHistory: history,
     deliveredBySector: SECTORS.map((sector) => ({ sector, delivered: projects.filter((p) => p.sector === sector && p.status === 'entregue').length })).filter((s) => s.delivered > 0),
+  }
+}
+
+type CampaignRow = { id: string; name: string; platform: Campaign['platform']; status: Campaign['status']; started_at: string; ended_at: string | null; notes: string; created_at: string; updated_at: string }
+
+/** Campanhas de marketing pago; lê a tabela real `campaigns`; sem Supabase configurado, cai nos dados de demonstração. */
+export async function listCampaigns(): Promise<Campaign[]> {
+  if (!isLive()) return mockCampaigns
+  try {
+    const { data, error } = await createAdminClient().from('campaigns').select('*').order('started_at', { ascending: false })
+    if (error) throw error
+    return (data as CampaignRow[]).map((r) => ({ id: r.id, name: r.name, platform: r.platform, status: r.status, startedAt: r.started_at, endedAt: r.ended_at, notes: r.notes, createdAt: r.created_at, updatedAt: r.updated_at }))
+  } catch (error) {
+    console.error('[marketing] leitura de campaigns falhou; a usar dados de demonstração:', error)
+    return mockCampaigns
+  }
+}
+
+type CampaignMetricRow = { id: string; campaign_id: string; date: string; impressions: number; clicks: number; spend: number; leads_count: number; created_at: string }
+
+/** Métricas diárias brutas de campanhas; lê a tabela real `campaign_metrics`; sem Supabase configurado, cai nos dados de demonstração. */
+export async function listCampaignMetrics(): Promise<CampaignDailyMetric[]> {
+  if (!isLive()) return mockCampaignMetrics
+  try {
+    const { data, error } = await createAdminClient().from('campaign_metrics').select('*').order('date', { ascending: false })
+    if (error) throw error
+    return (data as CampaignMetricRow[]).map((r) => ({ id: r.id, campaignId: r.campaign_id, date: r.date, impressions: r.impressions, clicks: r.clicks, spend: r.spend, leadsCount: r.leads_count, createdAt: r.created_at }))
+  } catch (error) {
+    console.error('[marketing] leitura de campaign_metrics falhou; a usar dados de demonstração:', error)
+    return mockCampaignMetrics
   }
 }
 
