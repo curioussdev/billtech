@@ -247,6 +247,7 @@ const markPaidSchema = z
     installmentId: z.uuid().optional(),
     amount: z.coerce.number().positive().max(1_000_000).optional(),
     method: z.string().trim().min(2, 'Indique o método (ex.: transferência).').max(60),
+    notes: z.string().trim().max(300).optional(),
   })
   .refine((v) => v.mode !== 'installment' || Boolean(v.installmentId), { message: 'Escolha a parcela.' })
   .refine((v) => v.mode !== 'custom' || v.amount !== undefined, { message: 'Indique o valor recebido.' })
@@ -264,7 +265,7 @@ export async function markInvoicePaidExternally(input: unknown): Promise<Finance
   const admin = await requireAdmin()
   const parsed = markPaidSchema.safeParse(input)
   if (!parsed.success) return { ok: false, message: parsed.error.issues[0]?.message ?? 'Dados inválidos.' }
-  const { mode, method } = parsed.data
+  const { mode, method, notes } = parsed.data
   const installmentId = mode === 'installment' ? (parsed.data.installmentId ?? null) : null
 
   const db = createAdminClient()
@@ -294,7 +295,7 @@ export async function markInvoicePaidExternally(input: unknown): Promise<Finance
     settledAmount = remaining
   }
 
-  await db.from('payments').insert({ invoice_id: invoice.id, installment_id: installmentId, amount: settledAmount, status: 'sucesso', payment_method: method, paid_at: now, registered_by: admin.id })
+  await db.from('payments').insert({ invoice_id: invoice.id, installment_id: installmentId, amount: settledAmount, status: 'sucesso', payment_method: method, paid_at: now, registered_by: admin.id, notes: notes ?? '' })
 
   const fullyPaid = alreadyPaid + settledAmount >= (invoice.final_amount as number) - 0.01
   if (fullyPaid) {
@@ -334,7 +335,7 @@ export async function markInvoicePaidExternally(input: unknown): Promise<Finance
     }
   }
 
-  await logAudit({ admin, action: 'MARK_INVOICE_PAID_EXTERNALLY', resource: 'financeiro', targetId: invoice.id, details: { mode, method: parsed.data.method, amount: settledAmount, installmentId } })
+  await logAudit({ admin, action: 'MARK_INVOICE_PAID_EXTERNALLY', resource: 'financeiro', targetId: invoice.id, details: { mode, method: parsed.data.method, amount: settledAmount, installmentId, notes: notes ?? null } })
   revalidatePath('/admin/finance')
   revalidatePath('/area-cliente', 'layout')
   return { ok: true }

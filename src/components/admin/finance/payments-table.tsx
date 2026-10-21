@@ -38,7 +38,10 @@ export function PaymentsTable({ payments }: { payments: AdminPayment[] }) {
                 <span className="block max-w-xs truncate">{p.invoiceDescription}</span>
               </td>
               <td className="px-4 py-3 text-right font-semibold tabular-nums">{formatEUR(p.amount)}</td>
-              <td className="px-4 py-3">{p.paymentMethod || '—'}</td>
+              <td className="px-4 py-3">
+                <span className="block">{p.paymentMethod || '—'}</span>
+                {p.notes && <span className="block max-w-[14rem] truncate text-xs text-muted-foreground" title={p.notes}>{p.notes}</span>}
+              </td>
               <td className="px-4 py-3 text-muted-foreground">{p.installmentId ? 'Parcela' : 'Fatura toda'}</td>
               <td className="px-4 py-3 text-muted-foreground">{p.registeredByEmail ?? 'Cliente (online)'}</td>
             </tr>

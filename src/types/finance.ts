@@ -84,6 +84,8 @@ export interface Payment {
   createdAt: string
   /** Admin que registou o pagamento manualmente (fora da plataforma); nulo quando foi o próprio cliente (Stripe). */
   registeredBy: string | null
+  /** Referência/nota opcional (ex.: nº de transferência) — só em registos manuais. */
+  notes: string
 }
 
 /** Fatura com as suas parcelas e pagamentos já carregados — a forma mais usada nas páginas. */

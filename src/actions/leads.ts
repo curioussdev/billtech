@@ -28,18 +28,37 @@ export async function createLead(input: unknown): Promise<CreateLeadResult> {
   if (!parsed.success) return { ok: false, message: parsed.error.issues[0]?.message ?? 'Dados inválidos.' }
 
   if (isLive()) {
-    const { error } = await createAdminClient().from('leads').insert({
-      contact_name: parsed.data.contactName,
-      company: parsed.data.company,
-      sector: parsed.data.sector,
-      channel: parsed.data.channel,
-      estimated_value: parsed.data.estimatedValue,
-      owner: admin.email,
-    })
-    if (error) {
+    const db = createAdminClient()
+    const { data: lead, error } = await db
+      .from('leads')
+      .insert({
+        contact_name: parsed.data.contactName,
+        company: parsed.data.company,
+        sector: parsed.data.sector,
+        channel: parsed.data.channel,
+        estimated_value: parsed.data.estimatedValue,
+        owner: admin.email,
+      })
+      .select('id')
+      .single()
+    if (error || !lead) {
       console.error('[pipeline] criação de lead falhou:', error)
       return { ok: false, message: 'Não foi possível criar o lead.' }
     }
+
+    // Captar um lead já É o esforço de cold call (ligar/abordar antes de o registar) — conta
+    // automaticamente para a meta diária, em vez de exigir um segundo registo manual no Fast-Log.
+    const { error: interactionError } = await db.from('interactions').insert({
+      lead_id: lead.id,
+      lead_label: parsed.data.company,
+      type: 'cold_call',
+      occurred_at: new Date().toISOString(),
+      outcome: 'interessado',
+      notes: 'Cold call automática — contabilizada ao criar o lead.',
+      admin_id: admin.id,
+      admin_email: admin.email,
+    })
+    if (interactionError) console.error('[pipeline] registo automático de cold call falhou:', interactionError)
   }
 
   await logAudit({ admin, action: 'CREATE_LEAD', resource: 'negocio', details: parsed.data })

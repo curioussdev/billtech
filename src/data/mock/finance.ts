@@ -45,8 +45,8 @@ export const mockDiscountCodes: DiscountCode[] = [
 type InvoiceSeed = {
   invoice: Invoice
   installments?: Installment[]
-  /** `registeredBy` fica sempre nulo aqui — é de demonstração, nenhum admin a sério registou nada. */
-  payments?: Omit<Payment, 'registeredBy'>[]
+  /** `registeredBy`/`notes` ficam sempre vazios aqui — é de demonstração, nenhum admin a sério registou nada. */
+  payments?: Omit<Payment, 'registeredBy' | 'notes'>[]
 }
 
 const seeds: InvoiceSeed[] = [
@@ -139,4 +139,4 @@ const seeds: InvoiceSeed[] = [
 
 export const mockInvoices: Invoice[] = seeds.map((s) => s.invoice)
 export const mockInstallments: Installment[] = seeds.flatMap((s) => s.installments ?? [])
-export const mockPayments: Payment[] = seeds.flatMap((s) => s.payments ?? []).map((p) => ({ ...p, registeredBy: null }))
+export const mockPayments: Payment[] = seeds.flatMap((s) => s.payments ?? []).map((p) => ({ ...p, registeredBy: null, notes: '' }))

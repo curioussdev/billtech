@@ -44,9 +44,9 @@ export function useRealtimeMessages(requestId: string, initialMessages: RequestM
 
 /**
  * Cliente: atualiza os contadores "por ler" (pedidos, comunicados) e o estado de pagamento (faturas,
- * parcelas) assim que algo muda no servidor — sem recarregar a página. `installments` não tem
- * `client_id` próprio, por isso vai sem filtro: a RLS já só entrega as linhas das faturas do
- * próprio cliente.
+ * parcelas, pagamentos) assim que algo muda no servidor — sem recarregar a página. `installments` e
+ * `payments` não têm `client_id` próprio, por isso vão sem filtro: a RLS já só entrega as linhas das
+ * faturas do próprio cliente.
  */
 export function useClientPortalRealtime(clientId: string) {
   const router = useRouter()
@@ -60,6 +60,7 @@ export function useClientPortalRealtime(clientId: string) {
       .on('postgres_changes', { event: '*', schema: 'public', table: 'broadcast_recipients', filter: `client_id=eq.${clientId}` }, () => router.refresh())
       .on('postgres_changes', { event: '*', schema: 'public', table: 'invoices', filter: `client_id=eq.${clientId}` }, () => router.refresh())
       .on('postgres_changes', { event: '*', schema: 'public', table: 'installments' }, () => router.refresh())
+      .on('postgres_changes', { event: '*', schema: 'public', table: 'payments' }, () => router.refresh())
       .subscribe()
 
     return () => {
@@ -80,6 +81,7 @@ export function useAdminRequestsRealtime() {
       .on('postgres_changes', { event: '*', schema: 'public', table: 'requests' }, () => router.refresh())
       .on('postgres_changes', { event: '*', schema: 'public', table: 'profile_change_requests' }, () => router.refresh())
       .on('postgres_changes', { event: '*', schema: 'public', table: 'invoices' }, () => router.refresh())
+      .on('postgres_changes', { event: '*', schema: 'public', table: 'payments' }, () => router.refresh())
       .on('postgres_changes', { event: '*', schema: 'public', table: 'meetings' }, () => router.refresh())
       .on('postgres_changes', { event: 'UPDATE', schema: 'public', table: 'leads' }, () => router.refresh())
       .subscribe()

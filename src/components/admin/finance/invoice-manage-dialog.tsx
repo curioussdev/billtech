@@ -141,6 +141,7 @@ function MarkPaidSection({ invoice, onSuccess }: { invoice: AdminInvoice; onSucc
   const [method, setMethod] = useState('Transferência bancária')
   const [target, setTarget] = useState('full')
   const [amount, setAmount] = useState('')
+  const [notes, setNotes] = useState('')
   const payableInstallments = invoice.installments.filter((i) => i.status !== 'pago')
   const remaining = paymentProgress(invoice).remainingAmount
 
@@ -150,12 +151,13 @@ function MarkPaidSection({ invoice, onSuccess }: { invoice: AdminInvoice; onSucc
       icon={<CheckCircle2 className="size-4 text-primary" aria-hidden />}
       buttonLabel="Marcar como pago"
       onSubmit={async () => {
+        const base = { method, notes: notes || undefined }
         const result =
           target === 'custom'
-            ? await markInvoicePaidExternally({ invoiceId: invoice.id, mode: 'custom', amount: Number(amount), method })
+            ? await markInvoicePaidExternally({ invoiceId: invoice.id, mode: 'custom', amount: Number(amount), ...base })
             : target === 'full'
-              ? await markInvoicePaidExternally({ invoiceId: invoice.id, mode: 'full', method })
-              : await markInvoicePaidExternally({ invoiceId: invoice.id, mode: 'installment', installmentId: target, method })
+              ? await markInvoicePaidExternally({ invoiceId: invoice.id, mode: 'full', ...base })
+              : await markInvoicePaidExternally({ invoiceId: invoice.id, mode: 'installment', installmentId: target, ...base })
         if (result.ok) onSuccess()
         return result
       }}
@@ -183,6 +185,10 @@ function MarkPaidSection({ invoice, onSuccess }: { invoice: AdminInvoice; onSucc
       <div className="grid gap-1">
         <Label htmlFor={`method-${invoice.id}`} className="text-xs">Método</Label>
         <Input id={`method-${invoice.id}`} value={method} onChange={(e) => setMethod(e.target.value)} placeholder="Transferência, MB Way, ao balcão…" required className={inputClass} />
+      </div>
+      <div className="grid gap-1">
+        <Label htmlFor={`notes-${invoice.id}`} className="text-xs">Referência / notas (opcional)</Label>
+        <Input id={`notes-${invoice.id}`} value={notes} onChange={(e) => setNotes(e.target.value)} placeholder="Ex.: nº de transferência, referência MB" maxLength={300} className={inputClass} />
       </div>
     </ActionSection>
   )
