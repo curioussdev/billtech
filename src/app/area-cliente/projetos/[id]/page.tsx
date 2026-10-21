@@ -11,6 +11,7 @@ import { Button } from '@/components/ui/button'
 import { formatDate, requestTypeLabels } from '@/lib/portal/labels'
 import { dueSeverity } from '@/lib/portal/schedule'
 import { getProject, getProjectDocuments, getProjectEvents, getRequests } from '@/lib/portal/queries'
+import { createClient } from '@/lib/supabase/server'
 
 export const metadata: Metadata = { title: 'Projeto' }
 
@@ -20,7 +21,8 @@ export default async function PortalProjectPage({ params }: { params: Promise<{ 
 
   const [project, requests] = await Promise.all([getProject(id), getRequests()])
   if (!project) notFound()
-  const [events, documents] = await Promise.all([getProjectEvents(project.id), getProjectDocuments(project.id)])
+  const supabase = await createClient()
+  const [events, documents, { data: contract }] = await Promise.all([getProjectEvents(project.id), getProjectDocuments(project.id), supabase.from('contracts').select('sent_at').eq('project_id', project.id).maybeSingle()])
   const related = requests.filter((r) => r.project_id === project.id)
   const severity = dueSeverity(project)
 
@@ -62,7 +64,7 @@ export default async function PortalProjectPage({ params }: { params: Promise<{ 
         </p>
       </section>
 
-      <ContractCard document={documents.find((d) => d.kind === 'contrato')} />
+      <ContractCard projectId={project.id} document={documents.find((d) => d.kind === 'contrato')} pendingSentAt={contract?.sent_at} />
 
       <section aria-labelledby="atividade-projeto">
         <h2 id="atividade-projeto" className="text-xl font-bold">

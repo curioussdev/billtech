@@ -49,6 +49,7 @@ export const AUDIT_ACTIONS = [
   'CREATE_CLIENT',
   'SET_NIF',
   'RESOLVE_PROFILE_CHANGE',
+  'SEND_CONTRACT',
 ] as const
 export type AuditAction = (typeof AUDIT_ACTIONS)[number]
 

@@ -2,7 +2,7 @@ import type { Metadata } from 'next'
 import Link from 'next/link'
 import { notFound } from 'next/navigation'
 import { z } from 'zod'
-import { ArrowLeft, Radar, Send, Trash2 } from 'lucide-react'
+import { ArrowLeft, FileSignature, Radar, Send, Trash2 } from 'lucide-react'
 import { deleteClientProject } from '@/actions/portal'
 import { Button } from '@/components/ui/button'
 import { ClientAccessForm } from '@/components/admin/editor/client-access-form'
@@ -30,17 +30,19 @@ export default async function AdminClientPage({ params }: { params: Promise<{ id
   const { data: client } = await supabase.from('profiles').select('id, email, full_name, company, created_at, role, nif').eq('id', id).single()
   if (!client) notFound()
 
-  const [{ solutions }, { data: assigned }, allProjects, allRequests, { data: changeRequests }, allSites] = await Promise.all([
+  const [{ solutions }, { data: assigned }, allProjects, allRequests, { data: changeRequests }, allSites, { data: contracts }] = await Promise.all([
     getSiteContent(),
     supabase.from('client_solutions').select('solution_id').eq('user_id', id),
     getProjects(),
     getRequests(),
     supabase.from('profile_change_requests').select('id, field, current_value, requested_value, reason, created_at').eq('client_id', id).eq('status', 'pendente').order('created_at', { ascending: false }),
     listExternalSites(),
+    supabase.from('contracts').select('project_id, sent_at').eq('client_id', id),
   ])
   const projects = allProjects.filter((p) => p.client_id === id)
   const requests = allRequests.filter((r) => r.client_id === id)
   const documentsByProject = new Map(await Promise.all(projects.map(async (p) => [p.id, await getProjectDocuments(p.id)] as const)))
+  const contractByProject = new Map((contracts ?? []).map((c) => [c.project_id as string, c.sent_at as string]))
   const sites = allSites.filter((s) => s.clientId === id)
 
   return (
@@ -80,6 +82,12 @@ export default async function AdminClientPage({ params }: { params: Promise<{ id
               <div>
                 <h3 className="mb-2 text-sm font-bold uppercase tracking-widest text-muted-foreground">Documentos</h3>
                 <DocumentsSection projectId={p.id} documents={documentsByProject.get(p.id) ?? []} isAdmin />
+              </div>
+              <div className="flex flex-wrap items-center gap-3">
+                <Button render={<Link href={`/admin/clientes/${id}/contrato/${p.id}`} />} nativeButton={false} variant="outline" size="sm">
+                  <FileSignature aria-hidden /> {contractByProject.has(p.id) ? 'Gerir contrato' : 'Gerar/enviar contrato'}
+                </Button>
+                {contractByProject.has(p.id) && <span className="text-xs text-muted-foreground">Contrato enviado em {formatDate(contractByProject.get(p.id)!)}</span>}
               </div>
               <form action={deleteClientProject}>
                 <input type="hidden" name="id" value={p.id} />

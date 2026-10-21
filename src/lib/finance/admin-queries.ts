@@ -75,6 +75,13 @@ export async function getInvoiceAdmin(id: string): Promise<AdminInvoice | null> 
   return all.find((i) => i.id === id) ?? null
 }
 
+/** Fatura mais recente de um cliente — usada só como pré-preenchimento de conveniência (ex.: ao gerar um contrato), nunca como fonte de verdade aplicada sem confirmação. */
+export async function getMostRecentInvoiceForClient(clientId: string): Promise<AdminInvoice | null> {
+  const all = await listAllInvoices()
+  const clientInvoices = all.filter((i) => i.clientId === clientId).sort((a, b) => b.createdAt.localeCompare(a.createdAt))
+  return clientInvoices[0] ?? null
+}
+
 export type AdminPayment = Payment & { clientId: string; clientName: string; clientCompany: string; invoiceDescription: string; registeredByEmail: string | null }
 
 /**
