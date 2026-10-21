@@ -10,7 +10,9 @@ export function buildLedger(invoices: AdminInvoice[], expenses: Expense[]): Ledg
 
   for (const invoice of invoices) {
     if (invoice.status === 'cancelado') continue
-    entries.push({ kind: 'invoice', date: invoice.dueDate, label: `Fatura — ${invoice.clientName}: ${invoice.description}`, amount: invoice.finalAmount })
+    // Data de emissão (createdAt), não de vencimento (dueDate) — senão uma fatura com vencimento
+    // futuro aparece no ledger como já faturada nesse dia, antes de esse dia sequer ter chegado.
+    entries.push({ kind: 'invoice', date: invoice.createdAt.slice(0, 10), label: `Fatura — ${invoice.clientName}: ${invoice.description}`, amount: invoice.finalAmount })
     for (const payment of invoice.payments) {
       if (payment.status !== 'sucesso' || !payment.paidAt) continue
       entries.push({ kind: 'payment', date: payment.paidAt.slice(0, 10), label: `Pagamento recebido — ${invoice.clientName}`, amount: payment.amount })
