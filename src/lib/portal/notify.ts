@@ -65,6 +65,23 @@ export function notifyClientStatus(request: PortalRequest, clientEmail: string, 
   })
 }
 
+export const clientProjectUrl = (id: string) => `${siteUrl}/area-cliente/projetos/${id}`
+
+/** Uma mudança no projeto (etapa, progresso, nota) — para o cliente acompanhar a responsabilidade da BillTech até o projeto ficar pronto. */
+export function notifyClientProjectUpdate(projectId: string, projectName: string, clientEmail: string, messages: string[]) {
+  return safely('atualização de projeto', async () => {
+    await sendEmail({
+      to: clientEmail,
+      subject: `Novidades no seu projeto: ${projectName}`,
+      html: layout(
+        projectName,
+        messages.map((m) => `<p style="margin:0 0 8px">${escapeHtml(m)}</p>`).join(''),
+        { label: 'Ver o projeto', href: clientProjectUrl(projectId) },
+      ),
+    })
+  })
+}
+
 export const clientMessageUrl = (id: string) => `${siteUrl}/area-cliente/mensagens/${id}`
 
 /** Email de um comunicado, personalizado com o primeiro nome do cliente. */

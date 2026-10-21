@@ -70,7 +70,10 @@ export default async function ExternalSiteDetailPage({ params }: { params: Promi
             <span className={`rounded-full px-2.5 py-0.5 text-xs font-semibold ${statusStyles[site.status]}`}>{statusLabels[site.status]}</span>
           </h1>
           <p className="mt-1 flex items-center gap-1.5 text-muted-foreground">
-            {site.clientName} ·{' '}
+            <Link href={`/admin/clientes/${site.clientId}`} className="underline underline-offset-2">
+              {site.clientName}
+            </Link>{' '}
+            ·{' '}
             <a href={`https://${site.domain}`} target="_blank" rel="noopener noreferrer" className="inline-flex items-center gap-1 underline underline-offset-2">
               {site.domain} <ExternalLinkIcon className="size-3" aria-hidden />
             </a>

@@ -46,6 +46,8 @@ export const AUDIT_ACTIONS = [
   'UPLOAD_PROJECT_DOCUMENT',
   'DELETE_PROJECT_DOCUMENT',
   'CREATE_CLIENT',
+  'SET_NIF',
+  'RESOLVE_PROFILE_CHANGE',
 ] as const
 export type AuditAction = (typeof AUDIT_ACTIONS)[number]
 

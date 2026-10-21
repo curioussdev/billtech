@@ -46,7 +46,7 @@ export default async function CommandCenterPage() {
               {sites.map((s) => (
                 <tr key={s.id} className="hover:bg-muted/40">
                   <td className="px-4 py-3 font-medium">
-                    <Link href={`/admin/command-center/${s.id}`} className="hover:underline">
+                    <Link href={`/admin/clientes/${s.clientId}`} className="hover:underline">
                       {s.clientName}
                     </Link>
                   </td>

@@ -5,7 +5,7 @@ import { isSuperAdminEmail } from '@/lib/super-admins'
 import { isSupabaseConfigured } from '@/lib/supabase/config'
 import { createClient } from '@/lib/supabase/server'
 
-export type Profile = { id: string; email: string; full_name: string; company: string; role: 'client' | 'admin' }
+export type Profile = { id: string; email: string; full_name: string; company: string; role: 'client' | 'admin'; nif: string | null }
 
 /** Utilizador autenticado + perfil, ou null. Valida o JWT no servidor (getUser). */
 export async function getCurrentProfile(): Promise<Profile | null> {
@@ -16,7 +16,7 @@ export async function getCurrentProfile(): Promise<Profile | null> {
 
   const { data: profile } = await supabase
     .from('profiles')
-    .select('id, email, full_name, company, role')
+    .select('id, email, full_name, company, role, nif')
     .eq('id', userData.user.id)
     .single()
   return (profile as Profile | null) ?? null

@@ -190,7 +190,7 @@ export function RequestMetaForm({ requestId, status, priority }: { requestId: st
 
 // ─── Perfil (cliente) ───────────────────────────────────────────────────────
 
-export function ProfileForm({ fullName, company, email }: { fullName: string; company: string; email: string }) {
+export function ProfileForm({ fullName, company }: { fullName: string; company: string }) {
   const [state, action, pending] = useActionState(updateProfile, initial)
   const errors = state.fieldErrors ?? {}
 
@@ -204,13 +204,6 @@ export function ProfileForm({ fullName, company, email }: { fullName: string; co
       <div className="grid gap-2">
         <Label htmlFor="company">Empresa</Label>
         <Input id="company" name="company" defaultValue={state.values?.company ?? company} className="h-11 text-base" autoComplete="organization" />
-      </div>
-      <div className="grid gap-2">
-        <Label htmlFor="email">Email</Label>
-        <Input id="email" value={email} readOnly className="h-11 bg-muted text-base" aria-describedby="email-hint" />
-        <p id="email-hint" className="text-xs text-muted-foreground">
-          Para alterar o email, contacte a equipa BillTech.
-        </p>
       </div>
       <Submit pending={pending}>Guardar alterações</Submit>
       <Feedback state={state} />

@@ -5,7 +5,7 @@ import { redirect } from 'next/navigation'
 import { z } from 'zod'
 import { logAudit } from '@/lib/audit'
 import { requireAdmin, requireSuperAdminForAction, requireUser } from '@/lib/auth'
-import { notifyAdminClientReply, notifyAdminNewRequest, notifyClientReply, notifyClientStatus } from '@/lib/portal/notify'
+import { notifyAdminClientReply, notifyAdminNewRequest, notifyClientProjectUpdate, notifyClientReply, notifyClientStatus } from '@/lib/portal/notify'
 import { OPEN_STATUSES, projectStageLabels, requestStatusLabels } from '@/lib/portal/labels'
 import { createAdminClient, createClient } from '@/lib/supabase/server'
 import { PROJECT_STAGES, REQUEST_PRIORITIES, REQUEST_STATUSES, REQUEST_TYPES, type PortalRequest, type ProjectStage } from '@/types/portal'
@@ -319,6 +319,12 @@ export async function saveClientProject(_prev: PortalFormState, formData: FormDa
   }
   if (note) events.push({ project_id: projectId, kind: 'nota', message: note, created_by: admin.id })
   if (events.length > 0) await supabase.from('client_project_events').insert(events)
+
+  // Email ao cliente nas mudanças de etapa (criação até "entregue") — para acompanhar a responsabilidade da BillTech.
+  if (events.some((e) => e.kind === 'status')) {
+    const { data: clientProfile } = await supabase.from('profiles').select('email').eq('id', clientId).maybeSingle()
+    if (clientProfile?.email) await notifyClientProjectUpdate(projectId, row.name, clientProfile.email, events.map((e) => e.message))
+  }
 
   revalidatePath(`/admin/clientes/${clientId}`)
   revalidatePath('/area-cliente', 'layout')

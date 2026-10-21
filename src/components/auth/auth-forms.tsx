@@ -3,6 +3,7 @@
 import { useActionState, useState } from 'react'
 import { Loader2 } from 'lucide-react'
 import { login, register, type AuthState } from '@/actions/auth'
+import { forgotPassword } from '@/actions/clients'
 import { Button } from '@/components/ui/button'
 import { Input } from '@/components/ui/input'
 import { Label } from '@/components/ui/label'
@@ -34,8 +35,51 @@ function Feedback({ state }: { state: AuthState }) {
   )
 }
 
+function ForgotPasswordForm({ onBack }: { onBack: () => void }) {
+  const [email, setEmail] = useState('')
+  const [pending, setPending] = useState(false)
+  const [sent, setSent] = useState(false)
+
+  async function submit(event: React.FormEvent) {
+    event.preventDefault()
+    setPending(true)
+    await forgotPassword(email)
+    setPending(false)
+    setSent(true)
+  }
+
+  if (sent) {
+    return (
+      <div className="grid gap-5">
+        <p role="status" className="text-sm font-medium text-primary">
+          Se existir uma conta com este email, enviámos um link para repor a password.
+        </p>
+        <button type="button" onClick={onBack} className="w-fit text-sm font-medium text-muted-foreground hover:text-foreground hover:underline">
+          Voltar a entrar
+        </button>
+      </div>
+    )
+  }
+
+  return (
+    <form onSubmit={submit} className="grid gap-5">
+      <Field id="forgot-email" label="Email" type="email" required autoComplete="email" value={email} onChange={(e) => setEmail(e.target.value)} />
+      <Button type="submit" disabled={pending} className="h-12 rounded-xl text-base">
+        {pending ? <Loader2 className="animate-spin" aria-hidden /> : null} Enviar link de reposição
+      </Button>
+      <button type="button" onClick={onBack} className="w-fit text-sm font-medium text-muted-foreground hover:text-foreground hover:underline">
+        Voltar a entrar
+      </button>
+    </form>
+  )
+}
+
 function LoginForm() {
   const [state, action, pending] = useActionState(login, initial)
+  const [forgot, setForgot] = useState(false)
+
+  if (forgot) return <ForgotPasswordForm onBack={() => setForgot(false)} />
+
   return (
     <form action={action} className="grid gap-5">
       <Field id="email" label="Email" type="email" required autoComplete="email" defaultValue={state.values?.email} error={state.fieldErrors?.email} />
@@ -43,6 +87,9 @@ function LoginForm() {
       <Button type="submit" disabled={pending} className="h-12 rounded-xl text-base">
         {pending ? <Loader2 className="animate-spin" aria-hidden /> : null} Entrar
       </Button>
+      <button type="button" onClick={() => setForgot(true)} className="w-fit text-sm font-medium text-muted-foreground hover:text-foreground hover:underline">
+        Esqueceu-se da password?
+      </button>
       <Feedback state={state} />
     </form>
   )

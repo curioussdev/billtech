@@ -2,14 +2,16 @@ import type { Metadata } from 'next'
 import Link from 'next/link'
 import { notFound } from 'next/navigation'
 import { z } from 'zod'
-import { ArrowLeft, Send, Trash2 } from 'lucide-react'
+import { ArrowLeft, Radar, Send, Trash2 } from 'lucide-react'
 import { deleteClientProject } from '@/actions/portal'
 import { Button } from '@/components/ui/button'
 import { ClientAccessForm } from '@/components/admin/editor/client-access-form'
 import { ConfirmButton } from '@/components/admin/editor/confirm-button'
+import { ResolveChangeRequestButtons } from '@/components/admin/clientes/resolve-change-request-buttons'
 import { DueBadge, ProjectStageBadge, RequestStatusBadge } from '@/components/portal/badges'
 import { DocumentsSection } from '@/components/portal/documents-section'
 import { ClientProjectForm } from '@/components/portal/forms'
+import { listExternalSites } from '@/lib/command-center/queries'
 import { getSiteContent } from '@/lib/content/get'
 import { formatDate, requestTypeLabels } from '@/lib/portal/labels'
 import { dueSeverity } from '@/lib/portal/schedule'
@@ -18,23 +20,28 @@ import { createClient } from '@/lib/supabase/server'
 
 export const metadata: Metadata = { title: 'Ficha do cliente' }
 
+const changeFieldLabels = { nif: 'NIF', email: 'Email' }
+
 export default async function AdminClientPage({ params }: { params: Promise<{ id: string }> }) {
   const { id } = await params
   if (!z.uuid().safeParse(id).success) notFound()
 
   const supabase = await createClient()
-  const { data: client } = await supabase.from('profiles').select('id, email, full_name, company, created_at, role').eq('id', id).single()
+  const { data: client } = await supabase.from('profiles').select('id, email, full_name, company, created_at, role, nif').eq('id', id).single()
   if (!client) notFound()
 
-  const [{ solutions }, { data: assigned }, allProjects, allRequests] = await Promise.all([
+  const [{ solutions }, { data: assigned }, allProjects, allRequests, { data: changeRequests }, allSites] = await Promise.all([
     getSiteContent(),
     supabase.from('client_solutions').select('solution_id').eq('user_id', id),
     getProjects(),
     getRequests(),
+    supabase.from('profile_change_requests').select('id, field, current_value, requested_value, reason, created_at').eq('client_id', id).eq('status', 'pendente').order('created_at', { ascending: false }),
+    listExternalSites(),
   ])
   const projects = allProjects.filter((p) => p.client_id === id)
   const requests = allRequests.filter((r) => r.client_id === id)
   const documentsByProject = new Map(await Promise.all(projects.map(async (p) => [p.id, await getProjectDocuments(p.id)] as const)))
+  const sites = allSites.filter((s) => s.clientId === id)
 
   return (
     <div className="mx-auto grid max-w-4xl gap-8">
@@ -107,6 +114,51 @@ export default async function AdminClientPage({ params }: { params: Promise<{ id
                   <span className="flex items-center gap-2 text-xs text-muted-foreground">
                     {requestTypeLabels[r.type]} <RequestStatusBadge status={r.status} />
                   </span>
+                </Link>
+              </li>
+            ))}
+          </ul>
+        )}
+      </section>
+
+      {changeRequests && changeRequests.length > 0 && (
+        <section aria-labelledby="pedidos-alteracao" className="grid gap-4">
+          <h2 id="pedidos-alteracao" className="text-xl font-bold">
+            Pedidos de alteração pendentes
+          </h2>
+          <ul className="grid gap-3">
+            {changeRequests.map((r) => (
+              <li key={r.id} className="grid gap-2 rounded-2xl border border-amber-500/40 bg-amber-500/10 p-4 sm:flex sm:items-center sm:justify-between">
+                <div>
+                  <p className="font-medium">
+                    {changeFieldLabels[r.field as 'nif' | 'email']}: <span className="text-muted-foreground">{r.current_value || '—'}</span> → <strong>{r.requested_value}</strong>
+                  </p>
+                  {r.reason && <p className="text-sm text-muted-foreground">{r.reason}</p>}
+                  <p className="text-xs text-muted-foreground">Pedido em {formatDate(r.created_at)}</p>
+                </div>
+                <ResolveChangeRequestButtons requestId={r.id} />
+              </li>
+            ))}
+          </ul>
+        </section>
+      )}
+
+      <section aria-labelledby="sites-externos" className="grid gap-4">
+        <h2 id="sites-externos" className="flex items-center gap-2 text-xl font-bold">
+          <Radar className="size-5" aria-hidden /> Sites externos (Centro de Comando)
+        </h2>
+        {sites.length === 0 ? (
+          <p className="text-sm text-muted-foreground">Nenhum site externo registado para este cliente.</p>
+        ) : (
+          <ul className="grid gap-3">
+            {sites.map((s) => (
+              <li key={s.id}>
+                <Link href={`/admin/command-center/${s.id}`} className="flex flex-wrap items-center justify-between gap-2 rounded-2xl border border-border bg-card p-4 hover:border-primary">
+                  <span>
+                    <span className="block font-semibold">{s.name}</span>
+                    <span className="text-sm text-muted-foreground">{s.domain}</span>
+                  </span>
+                  <span className="text-xs text-muted-foreground">{s.lastPingAt ? `Último ping ${formatDate(s.lastPingAt)}` : 'Sem telemetria ainda'}</span>
                 </Link>
               </li>
             ))}
