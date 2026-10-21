@@ -42,7 +42,7 @@ function GoalPaceCard({
 export function RevenueMonthCard({ data, delay }: { data: CrmOverview['revenueMonth']; delay?: number }) {
   const progress = Math.min(100, Math.round(data.progressPct))
   return (
-    <KpiCard title="Receita do Mês" icon={<Euro className="size-4" />} delay={delay}>
+    <KpiCard title="Receita de negócios fechados (mês)" icon={<Euro className="size-4" />} delay={delay}>
       <p className="text-3xl font-black tabular-nums">{formatEUR(data.current)}</p>
       <p className="text-xs text-muted-foreground">
         Meta: {formatEUR(data.target)} ({formatPct(data.progressPct)} alcançado)

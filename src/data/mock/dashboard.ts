@@ -3,8 +3,6 @@ import { MOCK_NOW } from '@/data/mock/projects'
 
 /** DADOS DE DEMONSTRAÇÃO — não vêm de nenhuma ferramenta de analytics real. */
 
-export const MONTHLY_REVENUE_TARGET = 18_000
-
 /** Visitas diárias dos últimos 60 dias (índice 59 = hoje). Determinístico: sem Math.random. */
 export const mockDailyVisits: TimeSeriesPoint[] = Array.from({ length: 60 }, (_, i) => {
   const date = new Date(new Date(MOCK_NOW).getTime() - (59 - i) * 86_400_000)

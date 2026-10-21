@@ -24,7 +24,7 @@ export function RevenueCard({ data, delay }: { data: RevenueKpi; delay?: number 
   const onTrack = data.projectedMonthEnd >= data.monthlyTarget
 
   return (
-    <KpiCard title="Receita do mês" icon={<Euro className="size-4" />} delay={delay}>
+    <KpiCard title="Receita de negócios fechados (mês)" icon={<Euro className="size-4" />} delay={delay}>
       <div className="flex items-end justify-between gap-2">
         <p className="text-3xl font-black tabular-nums">{formatEUR(data.monthToDate)}</p>
         <ChangeBadge value={data.changePct} />
@@ -32,6 +32,7 @@ export function RevenueCard({ data, delay }: { data: RevenueKpi; delay?: number 
       <p className="text-xs text-muted-foreground">
         Projeção de fecho: <strong className="font-semibold text-foreground">{formatEUR(data.projectedMonthEnd)}</strong> · variação face ao mês anterior
       </p>
+      <p className="text-xs text-muted-foreground">Valor de negócios fechados no Pipeline — para o valor faturado e cobrado, ver Financeiro.</p>
       <div>
         <div className="mb-1 flex justify-between text-xs">
           <span className="text-muted-foreground">Meta {formatEUR(data.monthlyTarget)}</span>

@@ -54,7 +54,9 @@ export default async function RevenuePage({ searchParams }: { searchParams: Prom
     <div className="mx-auto grid max-w-7xl gap-6">
       <div>
         <h1 className="text-3xl font-black tracking-tight">Receita &amp; Projetos</h1>
-        <p className="mt-1 text-muted-foreground">Projetos vendidos, faturação e margem. {periodLabels[filters.periodo]}.</p>
+        <p className="mt-1 text-muted-foreground">
+          Projetos vendidos (valor acordado no fecho do negócio) e margem. {periodLabels[filters.periodo]}. Para o valor faturado e cobrado, ver Financeiro.
+        </p>
       </div>
 
       <section aria-label="Indicadores" className="grid gap-4 sm:grid-cols-2 xl:grid-cols-4">

@@ -68,6 +68,7 @@ export function YearlyGoalCard({ data, asOf, delay }: { data: CrmOverview['yearl
           <p className="text-sm text-muted-foreground">
             No ritmo atual, fecha o ano com <strong className="text-foreground">{formatEUR(data.projected)}</strong>.
           </p>
+          <p className="text-xs text-muted-foreground">Baseado no valor de negócios fechados no Pipeline — para o valor faturado e cobrado, ver Financeiro.</p>
         </CardContent>
       </Card>
     </Reveal>

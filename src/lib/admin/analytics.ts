@@ -1,4 +1,4 @@
-import { MONTHLY_REVENUE_TARGET, mockDailyVisits, mockRealtime } from '@/data/mock/dashboard'
+import { mockDailyVisits, mockRealtime } from '@/data/mock/dashboard'
 import { mockGoals, mockInteractions } from '@/data/mock/crm'
 import { mockLeads, mockMeetings } from '@/data/mock/leads'
 import { mockProjects } from '@/data/mock/projects'
@@ -242,11 +242,15 @@ function monthlyRevenue(projects: ClientProject[], now: Date, months: number): M
 }
 
 export async function getDashboardOverview(): Promise<DashboardOverview> {
-  const projects = await listProjects()
   const now = businessNow()
+  const monthKey = now.toISOString().slice(0, 7)
 
   // Tráfego: últimos 30 dias vs 30 anteriores (real quando disponível)
-  const [liveTraffic, liveRealtime] = await Promise.all([loadLiveTraffic(), loadLiveRealtime()])
+  const [projects, goals, liveTraffic, liveRealtime] = await Promise.all([listProjects(), listGoals(), loadLiveTraffic(), loadLiveRealtime()])
+  // Mesma meta mensal de receita definida em /admin/crm/metas — nunca um valor fixo à parte, para
+  // nunca divergir do que a Visão Executiva e o Escritório Virtual mostram (bug corrigido: antes
+  // disto, esta página usava uma constante fixa que nunca refletia a meta real).
+  const monthlyTarget = goals.find((g) => g.periodType === 'mensal' && g.metric === 'revenue' && g.period === monthKey)?.target ?? 20_000
   const daily = liveTraffic?.series ?? mockDailyVisits
   const current = daily.slice(30)
   const previous = daily.slice(0, 30)
@@ -275,8 +279,8 @@ export async function getDashboardOverview(): Promise<DashboardOverview> {
       currency: 'EUR',
       monthToDate,
       projectedMonthEnd,
-      monthlyTarget: MONTHLY_REVENUE_TARGET,
-      targetProgressPct: (monthToDate / MONTHLY_REVENUE_TARGET) * 100,
+      monthlyTarget,
+      targetProgressPct: (monthToDate / monthlyTarget) * 100,
       changePct: pct(projectedMonthEnd, lastMonth),
     },
     projects: { active: byStatus.em_desenvolvimento + byStatus.em_teste, byStatus },
