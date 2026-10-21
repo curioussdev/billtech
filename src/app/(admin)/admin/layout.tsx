@@ -3,8 +3,10 @@ import { ExcludeFromAnalytics } from '@/components/analytics-tracker'
 import { AppSidebar } from '@/components/admin/layout/AppSidebar'
 import { FastLogModal } from '@/components/admin/crm/fast-log-modal'
 import { ToastProvider } from '@/components/admin/crm/toast'
+import { AdminNotificationCenter } from '@/components/admin/layout/notification-center'
 import { SidebarInset, SidebarProvider, SidebarTrigger } from '@/components/ui/sidebar'
 import { listLeads } from '@/lib/admin/analytics'
+import { getAdminNotifications } from '@/lib/admin/notifications'
 import { requireAdmin } from '@/lib/auth'
 import { createClient } from '@/lib/supabase/server'
 
@@ -14,9 +16,10 @@ export default async function AdminLayout({ children }: { children: React.ReactN
   // Reforço de autorização (o proxy só faz a verificação otimista)
   const profile = await requireAdmin()
   const supabase = await createClient()
-  const [{ count: unreadRequests }, leads] = await Promise.all([
+  const [{ count: unreadRequests }, leads, notifications] = await Promise.all([
     supabase.from('requests').select('id', { count: 'exact', head: true }).eq('admin_unread', true),
     listLeads(),
+    getAdminNotifications(),
   ])
 
   return (
@@ -28,6 +31,7 @@ export default async function AdminLayout({ children }: { children: React.ReactN
           <header className="sticky top-0 z-20 flex h-14 items-center gap-2 border-b border-border bg-background/90 px-4 backdrop-blur">
             <SidebarTrigger aria-label="Abrir/fechar menu" />
             <span className="text-sm font-medium text-muted-foreground">Administração</span>
+            <AdminNotificationCenter {...notifications} />
           </header>
           <main id="conteudo" className="min-w-0 px-4 py-8 sm:px-8">
             {children}

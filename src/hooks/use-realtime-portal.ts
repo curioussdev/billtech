@@ -78,6 +78,10 @@ export function useAdminRequestsRealtime() {
     const channel = supabase
       .channel('admin-requests-badge')
       .on('postgres_changes', { event: '*', schema: 'public', table: 'requests' }, () => router.refresh())
+      .on('postgres_changes', { event: '*', schema: 'public', table: 'profile_change_requests' }, () => router.refresh())
+      .on('postgres_changes', { event: '*', schema: 'public', table: 'invoices' }, () => router.refresh())
+      .on('postgres_changes', { event: '*', schema: 'public', table: 'meetings' }, () => router.refresh())
+      .on('postgres_changes', { event: 'UPDATE', schema: 'public', table: 'leads' }, () => router.refresh())
       .subscribe()
 
     return () => {
