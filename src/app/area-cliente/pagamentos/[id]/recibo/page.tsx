@@ -21,8 +21,10 @@ export default async function PortalInvoiceReceiptPage({ params }: { params: Pro
   const profile = await requireUser()
   const invoice = await getMyInvoice(id)
   if (!invoice) notFound()
-  const payment = invoice.payments.find((p) => p.status === 'sucesso')
-  if (!payment) notFound() // sem pagamento confirmado, não há recibo a emitir
+  const payments = invoice.payments.filter((p) => p.status === 'sucesso').sort((a, b) => (a.paidAt ?? '').localeCompare(b.paidAt ?? ''))
+  if (payments.length === 0) notFound() // sem pagamento confirmado, não há recibo a emitir
+  const total = payments.reduce((sum, p) => sum + p.amount, 0)
+  const latest = payments[payments.length - 1]
 
   return (
     <div className="mx-auto grid max-w-xl gap-6 print:max-w-none">
@@ -38,8 +40,8 @@ export default async function PortalInvoiceReceiptPage({ params }: { params: Pro
             <p className="text-sm text-muted-foreground">Recibo de pagamento</p>
           </div>
           <div className="text-right text-sm text-muted-foreground">
-            <p>Nº {payment.id.slice(0, 8).toUpperCase()}</p>
-            <p>{payment.paidAt ? formatDate(payment.paidAt) : '—'}</p>
+            <p>Nº {latest.id.slice(0, 8).toUpperCase()}</p>
+            <p>{latest.paidAt ? formatDate(latest.paidAt) : '—'}</p>
           </div>
         </div>
 
@@ -50,18 +52,21 @@ export default async function PortalInvoiceReceiptPage({ params }: { params: Pro
         </div>
 
         <div className="grid gap-2 border-t border-border pt-6">
-          <div className="flex items-center justify-between">
-            <span>{invoice.description}</span>
-            <span className="tabular-nums">{formatEUR(payment.amount)}</span>
-          </div>
+          <p className="text-sm text-muted-foreground">{invoice.description}</p>
+          {payments.map((p) => (
+            <div key={p.id} className="flex items-center justify-between text-sm">
+              <span className="text-muted-foreground">{p.paidAt ? formatDate(p.paidAt) : '—'} · {p.paymentMethod || 'Stripe'}</span>
+              <span className="tabular-nums">{formatEUR(p.amount)}</span>
+            </div>
+          ))}
         </div>
 
         <div className="flex items-center justify-between border-t border-border pt-6 text-lg font-black">
           <span>Total pago</span>
-          <span className="tabular-nums">{formatEUR(payment.amount)}</span>
+          <span className="tabular-nums">{formatEUR(total)}</span>
         </div>
 
-        <p className="text-xs text-muted-foreground">Método: {payment.paymentMethod || 'Stripe'} · Este documento serve como comprovativo de pagamento, não substitui fatura-recibo fiscal quando aplicável.</p>
+        <p className="text-xs text-muted-foreground">Este documento serve como comprovativo de pagamento, não substitui fatura-recibo fiscal quando aplicável.</p>
       </div>
     </div>
   )

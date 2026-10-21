@@ -139,8 +139,10 @@ function InstallmentsSection({ invoice, onSuccess }: { invoice: AdminInvoice; on
 
 function MarkPaidSection({ invoice, onSuccess }: { invoice: AdminInvoice; onSuccess: () => void }) {
   const [method, setMethod] = useState('Transferência bancária')
-  const [installmentId, setInstallmentId] = useState('')
+  const [target, setTarget] = useState('full')
+  const [amount, setAmount] = useState('')
   const payableInstallments = invoice.installments.filter((i) => i.status !== 'pago')
+  const remaining = paymentProgress(invoice).remainingAmount
 
   return (
     <ActionSection
@@ -148,22 +150,34 @@ function MarkPaidSection({ invoice, onSuccess }: { invoice: AdminInvoice; onSucc
       icon={<CheckCircle2 className="size-4 text-primary" aria-hidden />}
       buttonLabel="Marcar como pago"
       onSubmit={async () => {
-        const result = await markInvoicePaidExternally({ invoiceId: invoice.id, installmentId: installmentId || undefined, method })
+        const result =
+          target === 'custom'
+            ? await markInvoicePaidExternally({ invoiceId: invoice.id, mode: 'custom', amount: Number(amount), method })
+            : target === 'full'
+              ? await markInvoicePaidExternally({ invoiceId: invoice.id, mode: 'full', method })
+              : await markInvoicePaidExternally({ invoiceId: invoice.id, mode: 'installment', installmentId: target, method })
         if (result.ok) onSuccess()
         return result
       }}
     >
-      {invoice.paymentType === 'parcelado' && payableInstallments.length > 0 && (
-        <div className="grid gap-1">
-          <Label htmlFor={`inst-${invoice.id}`} className="text-xs">Parcela</Label>
-          <select id={`inst-${invoice.id}`} value={installmentId} onChange={(e) => setInstallmentId(e.target.value)} className={inputClass}>
-            <option value="">A fatura toda</option>
-            {payableInstallments.map((i) => (
+      <div className="grid gap-1">
+        <Label htmlFor={`target-${invoice.id}`} className="text-xs">O que foi recebido</Label>
+        <select id={`target-${invoice.id}`} value={target} onChange={(e) => setTarget(e.target.value)} className={inputClass}>
+          <option value="full">O que falta da fatura ({formatEUR(remaining)})</option>
+          {invoice.paymentType === 'parcelado' &&
+            payableInstallments.map((i) => (
               <option key={i.id} value={i.id}>
                 Parcela {i.installmentNumber} — {formatEUR(i.amount)}
               </option>
             ))}
-          </select>
+          <option value="custom">Valor personalizado (pagamento por conta)</option>
+        </select>
+      </div>
+      {target === 'custom' && (
+        <div className="grid gap-1">
+          <Label htmlFor={`amount-${invoice.id}`} className="text-xs">Valor recebido (€)</Label>
+          <Input id={`amount-${invoice.id}`} type="number" min={0.01} max={remaining} step="0.01" value={amount} onChange={(e) => setAmount(e.target.value)} placeholder={remaining.toFixed(2)} required className={inputClass} />
+          <p className="text-xs text-muted-foreground">Falta pagar: {formatEUR(remaining)}.</p>
         </div>
       )}
       <div className="grid gap-1">

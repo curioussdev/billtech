@@ -10,6 +10,7 @@ import { emailLayout, escapeHtml } from '@/lib/email-template'
 import { buildInstallmentRows } from '@/lib/finance/installments'
 import { formatEUR } from '@/lib/finance/labels'
 import { recordPaymentForLoyalty, tierForSpend } from '@/lib/finance/loyalty'
+import { type InstallmentRow, type PaymentRow, mapInstallment, mapPayment } from '@/lib/finance/mappers'
 import { paymentProgress } from '@/lib/finance/progress'
 import { getStripeClient, isStripeConfigured, STRIPE_PAYMENT_METHODS } from '@/lib/stripe/config'
 import { createAdminClient } from '@/lib/supabase/server'
@@ -239,52 +240,82 @@ export async function requestInstallmentPlan(input: unknown): Promise<FinanceRes
   return { ok: true }
 }
 
-const markPaidSchema = z.object({ invoiceId: z.uuid(), installmentId: z.union([z.uuid(), z.literal('')]).optional(), method: z.string().trim().min(2, 'Indique o método (ex.: transferência).').max(60) })
+const markPaidSchema = z
+  .object({
+    invoiceId: z.uuid(),
+    mode: z.enum(['installment', 'full', 'custom']),
+    installmentId: z.uuid().optional(),
+    amount: z.coerce.number().positive().max(1_000_000).optional(),
+    method: z.string().trim().min(2, 'Indique o método (ex.: transferência).').max(60),
+  })
+  .refine((v) => v.mode !== 'installment' || Boolean(v.installmentId), { message: 'Escolha a parcela.' })
+  .refine((v) => v.mode !== 'custom' || v.amount !== undefined, { message: 'Indique o valor recebido.' })
 
 /**
- * Admin marca uma fatura (ou uma parcela) como paga fora da Stripe — transferência bancária, ao
- * balcão, etc. Idempotente por construção: se já houver um pagamento "sucesso" para este alvo, não
- * duplica nada (não precisa de `idempotencyKey`, ao contrário do checkout — aqui não há retentativa
- * de rede a proteger, só um clique duplo do admin, e essa verificação já chega).
+ * Admin marca uma fatura (ou parte dela) como paga fora da Stripe — transferência bancária, ao
+ * balcão, etc. Três modos: `installment` paga uma parcela pré-definida; `full` paga o que falta da
+ * fatura toda (não o valor nominal fixo — se já houver pagamentos parciais, paga só a diferença);
+ * `custom` regista um valor livre "por conta", sem estar ligado a nenhuma parcela (ex.: cliente
+ * transferiu um valor que não bate certo com nenhuma parcela). Quando o valor pago fecha a conta
+ * (dentro de 1 cêntimo, por causa de arredondamentos), fecha também a fatura e todas as parcelas em
+ * aberto — nos três modos, para a lista de parcelas nunca ficar dessincronizada do estado real.
  */
 export async function markInvoicePaidExternally(input: unknown): Promise<FinanceResult> {
   const admin = await requireAdmin()
   const parsed = markPaidSchema.safeParse(input)
   if (!parsed.success) return { ok: false, message: parsed.error.issues[0]?.message ?? 'Dados inválidos.' }
-  const installmentId = parsed.data.installmentId || null
+  const { mode, method } = parsed.data
+  const installmentId = mode === 'installment' ? (parsed.data.installmentId ?? null) : null
 
   const db = createAdminClient()
   const { data: invoice } = await db.from('invoices').select('*').eq('id', parsed.data.invoiceId).maybeSingle()
   if (!invoice) return { ok: false, message: 'Fatura não encontrada.' }
+  if (invoice.status === 'pago' || invoice.status === 'cancelado') return { ok: true } // já estava marcada — sem duplicar
+
+  const { data: existingPayments } = await db.from('payments').select('amount, status').eq('invoice_id', invoice.id)
+  const alreadyPaid = (existingPayments ?? []).filter((p) => p.status === 'sucesso').reduce((sum, p) => sum + p.amount, 0)
+  const remaining = Math.max(0, (invoice.final_amount as number) - alreadyPaid)
 
   const now = new Date().toISOString()
-  let settledAmount = invoice.final_amount as number
+  let settledAmount: number
 
-  if (installmentId) {
-    const { data: installment } = await db.from('installments').select('*').eq('id', installmentId).eq('invoice_id', invoice.id).maybeSingle()
+  if (mode === 'installment') {
+    const { data: installment } = await db.from('installments').select('*').eq('id', installmentId!).eq('invoice_id', invoice.id).maybeSingle()
     if (!installment) return { ok: false, message: 'Parcela não encontrada.' }
     if (installment.status === 'pago') return { ok: true } // já estava marcada — sem duplicar
+    if (installment.amount > remaining + 0.01) return { ok: false, message: 'O valor da parcela excede o que falta pagar.' }
     settledAmount = installment.amount
     await db.from('installments').update({ status: 'pago' }).eq('id', installment.id)
-    const { data: remaining } = await db.from('installments').select('id').eq('invoice_id', invoice.id).neq('status', 'pago')
-    if (!remaining || remaining.length === 0) await db.from('invoices').update({ status: 'pago', updated_at: now }).eq('id', invoice.id)
+  } else if (mode === 'custom') {
+    settledAmount = Math.round((parsed.data.amount as number) * 100) / 100
+    if (settledAmount > remaining + 0.01) return { ok: false, message: `O valor excede o que falta pagar (${formatEUR(remaining)}).` }
   } else {
-    if (invoice.status === 'pago') return { ok: true } // já estava marcada — sem duplicar
-    await db.from('invoices').update({ status: 'pago', updated_at: now }).eq('id', invoice.id)
+    if (remaining <= 0) return { ok: true }
+    settledAmount = remaining
   }
 
-  await db.from('payments').insert({ invoice_id: invoice.id, installment_id: installmentId, amount: settledAmount, status: 'sucesso', payment_method: parsed.data.method, paid_at: now })
+  await db.from('payments').insert({ invoice_id: invoice.id, installment_id: installmentId, amount: settledAmount, status: 'sucesso', payment_method: method, paid_at: now })
+
+  const fullyPaid = alreadyPaid + settledAmount >= (invoice.final_amount as number) - 0.01
+  if (fullyPaid) {
+    await db.from('invoices').update({ status: 'pago', updated_at: now }).eq('id', invoice.id)
+    await db.from('installments').update({ status: 'pago' }).eq('invoice_id', invoice.id).neq('status', 'pago')
+  }
+
   await recordPaymentForLoyalty(db, invoice.client_id, settledAmount)
 
   // Email ao cliente a confirmar o pagamento recebido, com o ponto de situação atualizado.
   const { data: clientProfile } = await db.from('profiles').select('email').eq('id', invoice.client_id).maybeSingle()
   if (clientProfile?.email) {
-    const { data: installmentRows } = await db.from('installments').select('*').eq('invoice_id', invoice.id).order('installment_number', { ascending: true })
+    const [{ data: installmentRows }, { data: paymentRows }] = await Promise.all([
+      db.from('installments').select('*').eq('invoice_id', invoice.id).order('installment_number', { ascending: true }),
+      db.from('payments').select('*').eq('invoice_id', invoice.id),
+    ])
     const progress = paymentProgress({
       finalAmount: invoice.final_amount,
       paymentType: invoice.payment_type,
-      status: installmentId ? invoice.status : 'pago',
-      installments: (installmentRows ?? []).map((r) => ({ id: r.id, invoiceId: r.invoice_id, installmentNumber: r.installment_number, amount: r.amount, dueDate: r.due_date, status: r.status, stripePaymentIntentId: r.stripe_payment_intent_id, createdAt: r.created_at })),
+      installments: ((installmentRows ?? []) as InstallmentRow[]).map(mapInstallment),
+      payments: ((paymentRows ?? []) as PaymentRow[]).map(mapPayment),
     })
     try {
       await sendEmail({
@@ -303,7 +334,7 @@ export async function markInvoicePaidExternally(input: unknown): Promise<Finance
     }
   }
 
-  await logAudit({ admin, action: 'MARK_INVOICE_PAID_EXTERNALLY', resource: 'financeiro', targetId: invoice.id, details: { method: parsed.data.method, amount: settledAmount, installmentId } })
+  await logAudit({ admin, action: 'MARK_INVOICE_PAID_EXTERNALLY', resource: 'financeiro', targetId: invoice.id, details: { mode, method: parsed.data.method, amount: settledAmount, installmentId } })
   revalidatePath('/admin/finance')
   revalidatePath('/area-cliente', 'layout')
   return { ok: true }
