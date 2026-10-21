@@ -5,11 +5,10 @@ import { useRouter } from 'next/navigation'
 import { Check, Copy, Plus } from 'lucide-react'
 import { createExternalSite } from '@/actions/external-sites'
 import { Button } from '@/components/ui/button'
+import { SearchableSelect } from '@/components/ui/combobox'
 import { Dialog, DialogContent, DialogDescription, DialogFooter, DialogHeader, DialogTitle } from '@/components/ui/dialog'
 import { Input } from '@/components/ui/input'
 import { Label } from '@/components/ui/label'
-
-const selectClass = 'h-11 rounded-lg border border-input bg-background px-3 text-base focus-visible:border-ring focus-visible:ring-3 focus-visible:ring-ring/70 focus-visible:outline-none'
 
 function ApiKeyReveal({ apiKey, onDone }: { apiKey: string; onDone: () => void }) {
   const [copied, setCopied] = useState(false)
@@ -96,16 +95,15 @@ export function NewSiteModal({ clients }: { clients: { id: string; name: string 
             <form onSubmit={submit} className="grid gap-4">
               <div className="grid gap-1.5">
                 <Label htmlFor="site-client">Cliente</Label>
-                <select id="site-client" value={clientId} onChange={(e) => setClientId(e.target.value)} required className={selectClass}>
-                  <option value="" disabled>
-                    Escolher cliente…
-                  </option>
-                  {clients.map((c) => (
-                    <option key={c.id} value={c.id}>
-                      {c.name}
-                    </option>
-                  ))}
-                </select>
+                <SearchableSelect
+                  id="site-client"
+                  items={clients.map((c) => ({ value: c.id, label: c.name }))}
+                  value={clientId || null}
+                  onValueChange={(v) => setClientId(v ?? '')}
+                  placeholder="Escolher cliente…"
+                  emptyMessage="Nenhum cliente encontrado."
+                  className="h-11 text-base"
+                />
               </div>
               <div className="grid gap-1.5">
                 <Label htmlFor="site-name">Nome do site</Label>

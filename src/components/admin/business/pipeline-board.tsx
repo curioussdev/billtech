@@ -21,6 +21,7 @@ import { useToast } from '@/components/admin/crm/toast'
 import { LostDealDialog } from '@/components/admin/crm/lost-deal-dialog'
 import { SendProposalDialog } from '@/components/admin/crm/send-proposal-dialog'
 import { WinDealDialog, type WinDealPayload } from '@/components/admin/crm/win-deal-dialog'
+import { SearchableSelect } from '@/components/ui/combobox'
 import { daysInStage, funnelMetrics, OPEN_STAGES, STALE_STAGE_DAYS, weightedValue } from '@/lib/admin/business'
 import { formatEUR, formatPct, leadStageLabels, sectorLabels } from '@/lib/admin/format'
 import { lossReasonLabels } from '@/lib/crm/labels'
@@ -144,19 +145,15 @@ function LeadCardView({ lead, now, nextStep, onMove, portalClients, onLinkClient
         </select>
       )}
       {onLinkClient && portalClients && (
-        <select
-          value={lead.clientId ?? ''}
-          onChange={(e) => onLinkClient(e.target.value || null)}
-          aria-label={`Associar ${lead.company} a uma conta de cliente`}
-          className="h-8 rounded-md border border-input bg-background px-1.5 text-xs focus-visible:ring-2 focus-visible:ring-ring"
-        >
-          <option value="">Sem cliente associado</option>
-          {portalClients.map((c) => (
-            <option key={c.id} value={c.id}>
-              Cliente: {c.name}
-            </option>
-          ))}
-        </select>
+        <SearchableSelect
+          items={portalClients.map((c) => ({ value: c.id, label: c.name }))}
+          value={lead.clientId ?? null}
+          onValueChange={onLinkClient}
+          ariaLabel={`Associar ${lead.company} a uma conta de cliente`}
+          placeholder="Sem cliente associado"
+          emptyMessage="Nenhum cliente encontrado."
+          className="h-8 px-1.5 text-xs"
+        />
       )}
       {onMove && !overlay && <AddNoteButton leadId={lead.id} leadLabel={lead.company} />}
     </div>

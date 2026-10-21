@@ -1,6 +1,7 @@
 import type { Metadata } from 'next'
 import Link from 'next/link'
 import { CalendarClock, Mail, MessageCircle, NotebookText, Phone, Repeat, Users, type LucideIcon } from 'lucide-react'
+import { FilterSelect } from '@/components/admin/filter-select'
 import { Badge } from '@/components/ui/badge'
 import { Button } from '@/components/ui/button'
 import { listInteractions, listLeads } from '@/lib/admin/analytics'
@@ -77,14 +78,7 @@ export default async function InteractionsHistoryPage({ searchParams }: { search
         </label>
         <label className="grid gap-1 text-xs font-medium">
           Lead
-          <select name="lead" defaultValue={sp.lead ?? ''} className={selectClass}>
-            <option value="">Todos</option>
-            {leadOptions.map(([id, label]) => (
-              <option key={id} value={id}>
-                {label}
-              </option>
-            ))}
-          </select>
+          <FilterSelect name="lead" items={leadOptions.map(([id, label]) => ({ value: id, label }))} defaultValue={sp.lead ?? ''} placeholder="Todos" ariaLabel="Filtrar por lead" />
         </label>
         <label className="grid gap-1 text-xs font-medium">
           Tipo

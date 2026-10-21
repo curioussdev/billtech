@@ -1,5 +1,6 @@
 import type { Metadata } from 'next'
 import Link from 'next/link'
+import { FilterSelect } from '@/components/admin/filter-select'
 import { DiscountCodesSection } from '@/components/admin/finance/discount-codes-section'
 import { FinanceKpiCards } from '@/components/admin/finance/kpi-cards'
 import { InvoiceTable } from '@/components/admin/finance/invoice-table'
@@ -70,14 +71,7 @@ export default async function AdminFinancePage({ searchParams }: { searchParams:
         </label>
         <label className="grid gap-1 text-xs font-medium">
           Cliente
-          <select name="cliente" defaultValue={sp.cliente ?? ''} className={selectClass}>
-            <option value="">Todos</option>
-            {clients.map((c) => (
-              <option key={c.id} value={c.id}>
-                {c.name}
-              </option>
-            ))}
-          </select>
+          <FilterSelect name="cliente" items={clients.map((c) => ({ value: c.id, label: c.name }))} defaultValue={sp.cliente ?? ''} placeholder="Todos" ariaLabel="Filtrar por cliente" />
         </label>
         <label className="grid gap-1 text-xs font-medium">
           Período
