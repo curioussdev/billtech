@@ -11,14 +11,18 @@ import { emailLayout, escapeHtml } from '@/lib/email-template'
 import { createAdminClient } from '@/lib/supabase/server'
 
 /**
- * Redireciona sempre para a página dedicada de definir password — nunca o Site URL por omissão da
- * Supabase (a landing page), que era a causa do problema reportado. Vai direto à página (sem passar
- * por `/auth/callback`): os links gerados pela Admin API (convite/recuperação) devolvem sempre a
- * sessão por fragmento da URL (`#access_token=...`), nunca por `?code=` — confirmado empiricamente
- * contra o projeto real. O fragmento nunca chega ao servidor, só o browser o vê; por isso quem trata
- * a sessão é o cliente Supabase do browser (`detectSessionInUrl`), não uma Route Handler.
+ * Nunca enviamos o `action_link` da Supabase por email: esse link aponta para o endpoint de
+ * verificação deles (`/auth/v1/verify`) e consome o token com um simples GET — exatamente o que
+ * scanners de segurança de email (Gmail, Microsoft Defender, antivírus) fazem automaticamente antes
+ * de o destinatário sequer abrir o email, invalidando o link antes de a pessoa clicar ("link
+ * inválido ou expirado" mesmo em links novinhos em folha). Em vez disso, construímos o nosso
+ * próprio link para `/auth/definir-password?token_hash=…&type=…`: só é consumido quando o
+ * JavaScript da nossa página chama `verifyOtp` — scanners fazem um GET simples e nunca executam
+ * JavaScript, por isso nunca o consomem.
  */
-const PASSWORD_REDIRECT = `${siteUrl}/auth/definir-password`
+function buildPasswordLink(tokenHash: string, type: 'recovery' | 'invite'): string {
+  return `${siteUrl}/auth/definir-password?token_hash=${encodeURIComponent(tokenHash)}&type=${type}`
+}
 
 /** 24 carateres alfanuméricos de `crypto.randomBytes` — entropia muito acima do necessário para uma password temporária de uso único. */
 function generateTempPassword(): string {
@@ -83,7 +87,7 @@ export async function createClientAccount(input: unknown): Promise<CreateClientR
   const firstName = fullName.split(/\s+/)[0]
 
   // Link para escolher password própria — mesmo sem o cliente nunca usar a temporária.
-  const { data: linkData, error: linkError } = await db.auth.admin.generateLink({ type: 'recovery', email, options: { redirectTo: PASSWORD_REDIRECT } })
+  const { data: linkData, error: linkError } = await db.auth.admin.generateLink({ type: 'recovery', email })
   if (linkError) console.error('[clients] geração do link de recuperação falhou (a conta foi criada na mesma):', linkError)
 
   // Falha no envio do email nunca desfaz a criação da conta — é apenas "best effort"
@@ -98,7 +102,7 @@ export async function createClientAccount(input: unknown): Promise<CreateClientR
 <p style="margin:0 0 12px">Pode entrar já com esta password temporária:</p>
 <p style="margin:0 0 12px"><code style="display:inline-block;background:#f4f5f7;padding:8px 12px;border-radius:8px;font-size:16px;font-weight:bold;letter-spacing:0.5px">${escapeHtml(tempPassword)}</code></p>
 <p style="margin:0 0 12px;color:#4b5563">Recomendamos que a substitua por uma à sua escolha assim que entrar — pode fazê-lo agora mesmo, sem precisar da password temporária, clicando no botão abaixo.</p>`,
-        cta: linkData?.properties ? { label: 'Escolher a minha própria password', href: linkData.properties.action_link } : undefined,
+        cta: linkData?.properties ? { label: 'Escolher a minha própria password', href: buildPasswordLink(linkData.properties.hashed_token, 'recovery') } : undefined,
         footer: 'Recebeu este email porque a equipa BillTech criou uma conta de cliente para si. Se não esperava este email, contacte-nos.',
       }),
     })
@@ -122,7 +126,7 @@ export async function requestPasswordChange(): Promise<RequestPasswordChangeResu
   const user = await requireUser()
 
   const db = createAdminClient()
-  const { data, error } = await db.auth.admin.generateLink({ type: 'recovery', email: user.email, options: { redirectTo: PASSWORD_REDIRECT } })
+  const { data, error } = await db.auth.admin.generateLink({ type: 'recovery', email: user.email })
   if (error) {
     console.error('[clients] requestPasswordChange generateLink:', error)
     return { ok: false, message: 'Não foi possível gerar o pedido. Tente novamente.' }
@@ -134,7 +138,7 @@ export async function requestPasswordChange(): Promise<RequestPasswordChangeResu
     html: emailLayout({
       title: 'Pediu para alterar a sua password',
       bodyHtml: `<p style="margin:0 0 12px">Clique no botão abaixo para escolher uma nova password. Se não foi você a pedir, ignore este email — a sua password atual continua válida.</p>`,
-      cta: { label: 'Escolher nova password', href: data.properties.action_link },
+      cta: { label: 'Escolher nova password', href: buildPasswordLink(data.properties.hashed_token, 'recovery') },
       footer: 'Recebeu este email porque alguém pediu a alteração da password desta conta na BillTech.',
     }),
   })
@@ -162,7 +166,7 @@ export async function forgotPassword(email: string): Promise<{ ok: true }> {
 
   await db.from('password_reset_requests').insert({ email: parsed.data })
 
-  const { data, error } = await db.auth.admin.generateLink({ type: 'recovery', email: parsed.data, options: { redirectTo: PASSWORD_REDIRECT } })
+  const { data, error } = await db.auth.admin.generateLink({ type: 'recovery', email: parsed.data })
   if (error) return { ok: true } // conta inexistente ou outro erro — nunca revelamos qual ao chamador
 
   try {
@@ -172,7 +176,7 @@ export async function forgotPassword(email: string): Promise<{ ok: true }> {
       html: emailLayout({
         title: 'Pediu para repor a sua password',
         bodyHtml: `<p style="margin:0 0 12px">Clique no botão abaixo para escolher uma nova password. Se não foi você a pedir, ignore este email — a sua password atual continua válida.</p>`,
-        cta: { label: 'Repor password', href: data.properties.action_link },
+        cta: { label: 'Repor password', href: buildPasswordLink(data.properties.hashed_token, 'recovery') },
         footer: 'Recebeu este email porque alguém pediu a reposição da password desta conta na BillTech.',
       }),
     })

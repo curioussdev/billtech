@@ -4,6 +4,7 @@ import { notFound } from 'next/navigation'
 import { z } from 'zod'
 import { ArrowLeft, ArrowUpRight, CalendarClock, Plus } from 'lucide-react'
 import { DueBadge, ProjectStageBadge, RequestStatusBadge } from '@/components/portal/badges'
+import { ContractCard } from '@/components/portal/contract-card'
 import { DocumentsSection } from '@/components/portal/documents-section'
 import { ProgressBar, ProjectStepper, ProjectTimeline } from '@/components/portal/project-widgets'
 import { Button } from '@/components/ui/button'
@@ -60,6 +61,8 @@ export default async function PortalProjectPage({ params }: { params: Promise<{ 
           {project.due_date ? `Entrega prevista: ${formatDate(project.due_date)}` : 'Data de entrega ainda por definir'} · última atualização {formatDate(project.updated_at)}
         </p>
       </section>
+
+      <ContractCard document={documents.find((d) => d.kind === 'contrato')} />
 
       <section aria-labelledby="atividade-projeto">
         <h2 id="atividade-projeto" className="text-xl font-bold">

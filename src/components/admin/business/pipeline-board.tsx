@@ -15,8 +15,8 @@ import {
   type DragEndEvent,
   type DragStartEvent,
 } from '@dnd-kit/core'
-import { ArrowRight, CalendarClock, CheckCircle2, GripVertical, User, XCircle } from 'lucide-react'
-import { linkLeadToClient, moveLead } from '@/actions/pipeline'
+import { ArrowRight, CalendarClock, CheckCircle2, GripVertical, NotebookPen, User, XCircle } from 'lucide-react'
+import { addLeadNote, linkLeadToClient, moveLead } from '@/actions/pipeline'
 import { useToast } from '@/components/admin/crm/toast'
 import { LostDealDialog } from '@/components/admin/crm/lost-deal-dialog'
 import { SendProposalDialog } from '@/components/admin/crm/send-proposal-dialog'
@@ -44,6 +44,58 @@ type CardProps = {
   onMove?: (stage: LeadStage) => void
   portalClients?: PortalClientOption[]
   onLinkClient?: (clientId: string | null) => void
+}
+
+/** Nota opcional sobre a última interação — disponível em qualquer etapa, nunca obrigatória. */
+function AddNoteButton({ leadId, leadLabel }: { leadId: string; leadLabel: string }) {
+  const [open, setOpen] = useState(false)
+  const [note, setNote] = useState('')
+  const [pending, setPending] = useState(false)
+  const { push } = useToast()
+
+  async function submit(e: React.FormEvent) {
+    e.preventDefault()
+    setPending(true)
+    const result = await addLeadNote({ leadId, leadLabel, note })
+    setPending(false)
+    if (!result.ok) {
+      push(result.message, 'error')
+      return
+    }
+    push('Nota guardada.', 'success')
+    setNote('')
+    setOpen(false)
+  }
+
+  if (!open) {
+    return (
+      <button type="button" onClick={() => setOpen(true)} className="inline-flex w-fit items-center gap-1 text-xs text-muted-foreground hover:text-foreground">
+        <NotebookPen className="size-3" aria-hidden /> Adicionar nota
+      </button>
+    )
+  }
+
+  return (
+    <form onSubmit={submit} className="grid gap-1.5">
+      <textarea
+        value={note}
+        onChange={(e) => setNote(e.target.value)}
+        placeholder="O que aconteceu na última interação…"
+        rows={2}
+        maxLength={1000}
+        autoFocus
+        className="w-full rounded-md border border-input bg-background p-1.5 text-xs focus-visible:ring-2 focus-visible:ring-ring"
+      />
+      <div className="flex gap-1.5">
+        <button type="submit" disabled={pending || !note.trim()} className="rounded-md bg-primary px-2 py-1 text-xs font-medium text-primary-foreground disabled:opacity-50">
+          {pending ? 'A guardar…' : 'Guardar'}
+        </button>
+        <button type="button" onClick={() => (setOpen(false), setNote(''))} className="rounded-md px-2 py-1 text-xs text-muted-foreground hover:text-foreground">
+          Cancelar
+        </button>
+      </div>
+    </form>
+  )
 }
 
 /** Aparência do cartão (sem hooks de arrasto): reutilizada no cartão real e na "sombra" do DragOverlay. */
@@ -106,6 +158,7 @@ function LeadCardView({ lead, now, nextStep, onMove, portalClients, onLinkClient
           ))}
         </select>
       )}
+      {onMove && !overlay && <AddNoteButton leadId={lead.id} leadLabel={lead.company} />}
     </div>
   )
 }

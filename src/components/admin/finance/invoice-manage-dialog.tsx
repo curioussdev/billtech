@@ -4,12 +4,14 @@ import { useState } from 'react'
 import { useRouter } from 'next/navigation'
 import { CalendarClock, CheckCircle2, Layers, Loader2, Percent } from 'lucide-react'
 import { applyDiscountToInvoice, convertToInstallments, extendDueDate, markInvoicePaidExternally, type FinanceResult } from '@/actions/payments'
+import { PaymentProgressBar } from '@/components/portal/payment-progress'
 import { Button } from '@/components/ui/button'
 import { Dialog, DialogContent, DialogDescription, DialogFooter, DialogHeader, DialogTitle } from '@/components/ui/dialog'
 import { Input } from '@/components/ui/input'
 import { Label } from '@/components/ui/label'
 import type { AdminInvoice } from '@/lib/finance/admin-queries'
 import { formatEUR } from '@/lib/finance/labels'
+import { paymentProgress } from '@/lib/finance/progress'
 
 /** Casca comum das secções de gestão — colapsável, com o seu próprio estado de pendente/erro. */
 function ActionSection({ title, icon, buttonLabel, onSubmit, defaultOpen, children }: { title: string; icon: React.ReactNode; buttonLabel: string; onSubmit: () => Promise<FinanceResult>; defaultOpen?: boolean; children: React.ReactNode }) {
@@ -190,6 +192,12 @@ export function InvoiceManageDialog({ invoice, open, onOpenChange }: { invoice: 
             {invoice.description} · {invoice.clientName}
           </DialogDescription>
         </DialogHeader>
+
+        {invoice.status !== 'cancelado' && (
+          <div className="rounded-xl border border-border bg-muted/30 p-4">
+            <PaymentProgressBar progress={paymentProgress(invoice)} compact />
+          </div>
+        )}
 
         {closed ? (
           <p className="rounded-xl border border-border bg-muted/40 p-4 text-sm text-muted-foreground">Esta fatura já está {invoice.status === 'pago' ? 'paga' : 'cancelada'} — não há mais nada a gerir.</p>

@@ -3,6 +3,7 @@ import Link from 'next/link'
 import { Code2, LayoutDashboard, LogOut, MessageCircle, Plus } from 'lucide-react'
 import { logout } from '@/actions/auth'
 import { PortalNav } from '@/components/portal/portal-nav'
+import { WelcomeTour } from '@/components/portal/welcome-tour'
 import { ThemeToggle } from '@/components/theme-toggle'
 import { Button } from '@/components/ui/button'
 import { requireUser } from '@/lib/auth'
@@ -77,6 +78,8 @@ export default async function PortalLayout({ children }: { children: React.React
           </div>
         </div>
       </footer>
+
+      <WelcomeTour show={!profile.onboarding_completed_at} />
     </div>
   )
 }

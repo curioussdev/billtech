@@ -5,8 +5,12 @@ import { z } from 'zod'
 import { siteUrl } from '@/data/site'
 import { logAudit } from '@/lib/audit'
 import { requireAdmin, requireUser } from '@/lib/auth'
+import { sendEmail } from '@/lib/contact-delivery'
+import { emailLayout, escapeHtml } from '@/lib/email-template'
 import { buildInstallmentRows } from '@/lib/finance/installments'
+import { formatEUR } from '@/lib/finance/labels'
 import { recordPaymentForLoyalty, tierForSpend } from '@/lib/finance/loyalty'
+import { paymentProgress } from '@/lib/finance/progress'
 import { getStripeClient, isStripeConfigured, STRIPE_PAYMENT_METHODS } from '@/lib/stripe/config'
 import { createAdminClient } from '@/lib/supabase/server'
 import { EXPENSE_CATEGORIES } from '@/types/finance'
@@ -271,6 +275,33 @@ export async function markInvoicePaidExternally(input: unknown): Promise<Finance
 
   await db.from('payments').insert({ invoice_id: invoice.id, installment_id: installmentId, amount: settledAmount, status: 'sucesso', payment_method: parsed.data.method, paid_at: now })
   await recordPaymentForLoyalty(db, invoice.client_id, settledAmount)
+
+  // Email ao cliente a confirmar o pagamento recebido, com o ponto de situação atualizado.
+  const { data: clientProfile } = await db.from('profiles').select('email').eq('id', invoice.client_id).maybeSingle()
+  if (clientProfile?.email) {
+    const { data: installmentRows } = await db.from('installments').select('*').eq('invoice_id', invoice.id).order('installment_number', { ascending: true })
+    const progress = paymentProgress({
+      finalAmount: invoice.final_amount,
+      paymentType: invoice.payment_type,
+      status: installmentId ? invoice.status : 'pago',
+      installments: (installmentRows ?? []).map((r) => ({ id: r.id, invoiceId: r.invoice_id, installmentNumber: r.installment_number, amount: r.amount, dueDate: r.due_date, status: r.status, stripePaymentIntentId: r.stripe_payment_intent_id, createdAt: r.created_at })),
+    })
+    try {
+      await sendEmail({
+        to: clientProfile.email,
+        subject: `Pagamento recebido — ${invoice.description}`,
+        html: emailLayout({
+          title: 'Recebemos o seu pagamento',
+          bodyHtml: `<p style="margin:0 0 12px">Confirmamos a receção de <strong>${formatEUR(settledAmount)}</strong> referente a «${escapeHtml(invoice.description)}».</p>
+<p style="margin:0 0 12px">Total pago até agora: <strong>${formatEUR(progress.paidAmount)}</strong> de ${formatEUR(progress.totalAmount)}${progress.remainingAmount > 0 ? ` — faltam ${formatEUR(progress.remainingAmount)}.` : ' — fatura liquidada.'}</p>`,
+          cta: { label: 'Ver fatura', href: `${siteUrl}/area-cliente/pagamentos/${invoice.id}` },
+          footer: 'Recebeu este email porque tem uma fatura ativa na BillTech.',
+        }),
+      })
+    } catch (emailError) {
+      console.error('[payments] email de confirmação de pagamento falhou:', emailError)
+    }
+  }
 
   await logAudit({ admin, action: 'MARK_INVOICE_PAID_EXTERNALLY', resource: 'financeiro', targetId: invoice.id, details: { method: parsed.data.method, amount: settledAmount, installmentId } })
   revalidatePath('/admin/finance')

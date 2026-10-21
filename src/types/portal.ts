@@ -55,6 +55,9 @@ export interface PortalRequest {
   satisfaction_at: string | null
 }
 
+export const DOCUMENT_KINDS = ['contrato', 'entregavel', 'acesso', 'outro'] as const
+export type DocumentKind = (typeof DOCUMENT_KINDS)[number]
+
 export interface ProjectDocument {
   id: string
   project_id: string
@@ -62,6 +65,7 @@ export interface ProjectDocument {
   file_name: string
   content_type: string
   size_bytes: number
+  kind: DocumentKind
   created_at: string
 }
 

@@ -5,9 +5,11 @@ import { z } from 'zod'
 import { ArrowLeft, CalendarClock, CheckCircle2, Receipt, XCircle } from 'lucide-react'
 import { InstallmentTable, InvoiceStatusBadge } from '@/components/portal/invoice-widgets'
 import { InstallmentPlanButton, PayButton } from '@/components/portal/payment-modals'
+import { PaymentProgressBar } from '@/components/portal/payment-progress'
 import { Button } from '@/components/ui/button'
 import { formatDate, formatEUR, paymentTypeLabels } from '@/lib/finance/labels'
 import { getMyInvoice } from '@/lib/finance/queries'
+import { paymentProgress } from '@/lib/finance/progress'
 
 export const metadata: Metadata = { title: 'Fatura' }
 
@@ -68,6 +70,10 @@ export default async function PortalInvoicePage({ params, searchParams }: { para
           <span>Total</span>
           <span className="tabular-nums">{formatEUR(invoice.finalAmount)}</span>
         </div>
+      </section>
+
+      <section aria-label="Pagamento acumulado" className="rounded-2xl border border-border bg-card p-6">
+        <PaymentProgressBar progress={paymentProgress(invoice)} />
       </section>
 
       {invoice.paymentType === 'parcelado' && (

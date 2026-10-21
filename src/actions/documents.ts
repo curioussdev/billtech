@@ -5,6 +5,7 @@ import { logAudit } from '@/lib/audit'
 import { requireAdmin, requireUser } from '@/lib/auth'
 import { CLIENT_ATTACHMENTS_BUCKET } from '@/lib/supabase/config'
 import { createAdminClient } from '@/lib/supabase/server'
+import { DOCUMENT_KINDS } from '@/types/portal'
 
 /**
  * Documentos do projeto (contratos, acessos, entregáveis) — só o admin carrega, o cliente só
@@ -18,6 +19,7 @@ const recordSchema = z.object({
   fileName: z.string().trim().min(1).max(255),
   contentType: z.string().trim().max(120),
   sizeBytes: z.coerce.number().int().min(0).max(10 * 1024 * 1024),
+  kind: z.enum(DOCUMENT_KINDS).default('outro'),
 })
 
 export type DocumentResult = { ok: true; documentId: string } | { ok: false; message: string }
@@ -31,7 +33,7 @@ export async function recordProjectDocument(input: unknown): Promise<DocumentRes
   const db = createAdminClient()
   const { data, error } = await db
     .from('project_documents')
-    .insert({ project_id: parsed.data.projectId, storage_path: parsed.data.storagePath, file_name: parsed.data.fileName, content_type: parsed.data.contentType, size_bytes: parsed.data.sizeBytes, uploaded_by: admin.id })
+    .insert({ project_id: parsed.data.projectId, storage_path: parsed.data.storagePath, file_name: parsed.data.fileName, content_type: parsed.data.contentType, size_bytes: parsed.data.sizeBytes, kind: parsed.data.kind, uploaded_by: admin.id })
     .select('id')
     .single()
   if (error || !data) return { ok: false, message: 'Não foi possível registar o documento.' }

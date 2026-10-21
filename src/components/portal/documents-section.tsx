@@ -6,9 +6,13 @@ import { Download, FileText, Loader2, Trash2, Upload } from 'lucide-react'
 import { deleteProjectDocument, getProjectDocumentUrl, recordProjectDocument } from '@/actions/documents'
 import { createClient } from '@/lib/supabase/client'
 import { CLIENT_ATTACHMENTS_BUCKET } from '@/lib/supabase/config'
-import type { ProjectDocument } from '@/types/portal'
+import { DOCUMENT_KINDS, type DocumentKind, type ProjectDocument } from '@/types/portal'
 
 const MAX_SIZE_BYTES = 10 * 1024 * 1024
+
+const kindLabels: Record<DocumentKind, string> = { contrato: 'Contrato', entregavel: 'Entregável', acesso: 'Acesso', outro: 'Outro' }
+
+const selectClass = 'h-8 rounded-lg border border-input bg-background px-2 text-xs focus-visible:border-ring focus-visible:ring-3 focus-visible:ring-ring/70 focus-visible:outline-none'
 
 /**
  * Documentos do projeto — contratos, acessos, entregáveis. Só o admin carrega ou apaga; o cliente só
@@ -21,6 +25,10 @@ export function DocumentsSection({ projectId, documents, isAdmin }: { projectId:
   const [downloading, setDownloading] = useState<string | null>(null)
   const [removing, setRemoving] = useState<string | null>(null)
   const [error, setError] = useState<string | null>(null)
+  const [kind, setKind] = useState<DocumentKind>('outro')
+
+  // O contrato tem destaque próprio (ContractCard) — não duplicar aqui.
+  const visibleDocuments = documents.filter((d) => d.kind !== 'contrato')
 
   async function handleUpload(files: FileList | null) {
     if (!files || files.length === 0) return
@@ -37,7 +45,7 @@ export function DocumentsSection({ projectId, documents, isAdmin }: { projectId:
         const path = `projects/${projectId}/${crypto.randomUUID()}${ext ? `.${ext}` : ''}`
         const { error: uploadError } = await supabase.storage.from(CLIENT_ATTACHMENTS_BUCKET).upload(path, file, { contentType: file.type || 'application/octet-stream' })
         if (uploadError) throw uploadError
-        const result = await recordProjectDocument({ projectId, storagePath: path, fileName: file.name, contentType: file.type, sizeBytes: file.size })
+        const result = await recordProjectDocument({ projectId, storagePath: path, fileName: file.name, contentType: file.type, sizeBytes: file.size, kind })
         if (!result.ok) throw new Error(result.message)
       } catch (e) {
         setError(e instanceof Error ? e.message : 'Falha ao carregar o documento.')
@@ -66,11 +74,20 @@ export function DocumentsSection({ projectId, documents, isAdmin }: { projectId:
   return (
     <div className="grid gap-3">
       {isAdmin && (
-        <label className="inline-flex w-fit cursor-pointer items-center gap-1.5 rounded-lg border border-dashed border-border px-3 py-1.5 text-xs font-medium text-muted-foreground transition-colors hover:border-primary hover:text-foreground">
-          {uploading ? <Loader2 className="size-3.5 animate-spin" aria-hidden /> : <Upload className="size-3.5" aria-hidden />}
-          Carregar documento
-          <input ref={inputRef} type="file" multiple className="sr-only" onChange={(e) => handleUpload(e.target.files)} disabled={uploading} />
-        </label>
+        <div className="flex flex-wrap items-center gap-2">
+          <select aria-label="Tipo de documento" value={kind} onChange={(e) => setKind(e.target.value as DocumentKind)} className={selectClass}>
+            {DOCUMENT_KINDS.map((k) => (
+              <option key={k} value={k}>
+                {kindLabels[k]}
+              </option>
+            ))}
+          </select>
+          <label className="inline-flex w-fit cursor-pointer items-center gap-1.5 rounded-lg border border-dashed border-border px-3 py-1.5 text-xs font-medium text-muted-foreground transition-colors hover:border-primary hover:text-foreground">
+            {uploading ? <Loader2 className="size-3.5 animate-spin" aria-hidden /> : <Upload className="size-3.5" aria-hidden />}
+            Carregar documento
+            <input ref={inputRef} type="file" multiple className="sr-only" onChange={(e) => handleUpload(e.target.files)} disabled={uploading} />
+          </label>
+        </div>
       )}
       {error && (
         <p role="alert" className="text-xs font-medium text-destructive">
@@ -78,11 +95,11 @@ export function DocumentsSection({ projectId, documents, isAdmin }: { projectId:
         </p>
       )}
 
-      {documents.length === 0 ? (
+      {visibleDocuments.length === 0 ? (
         <p className="rounded-xl border border-dashed border-border p-4 text-sm text-muted-foreground">Ainda sem documentos neste projeto.</p>
       ) : (
         <ul className="grid gap-2">
-          {documents.map((doc) => (
+          {visibleDocuments.map((doc) => (
             <li key={doc.id} className="flex items-center justify-between gap-3 rounded-xl border border-border bg-card px-4 py-2.5 text-sm">
               <span className="flex min-w-0 items-center gap-2">
                 <FileText className="size-4 shrink-0 text-muted-foreground" aria-hidden />

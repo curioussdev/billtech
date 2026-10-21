@@ -233,3 +233,40 @@ export async function updateDealDelivery(formData: FormData): Promise<void> {
   revalidatePath('/admin/revenue')
   redirect('/admin/revenue')
 }
+
+const noteSchema = z.object({ leadId: z.string().min(1).max(60), leadLabel: z.string().min(1).max(160), note: z.string().trim().min(1, 'Escreva a nota.').max(1000) })
+
+export type AddNoteResult = { ok: true } | { ok: false; message: string }
+
+/**
+ * Nota opcional sobre a última interação com o lead — não está presa a nenhuma etapa, fica
+ * disponível em qualquer altura do Pipeline. Reaproveita `interactions` (mesma tabela do Fast-Log),
+ * com tipo/resultado neutros, para alimentar o mesmo histórico e "próxima ação" do cartão.
+ */
+export async function addLeadNote(input: unknown): Promise<AddNoteResult> {
+  const admin = await requireAdmin()
+  const parsed = noteSchema.safeParse(input)
+  if (!parsed.success) return { ok: false, message: parsed.error.issues[0]?.message ?? 'Dados inválidos.' }
+
+  if (isLive()) {
+    const { error } = await createAdminClient().from('interactions').insert({
+      lead_id: parsed.data.leadId,
+      lead_label: parsed.data.leadLabel,
+      type: 'follow_up',
+      occurred_at: new Date().toISOString(),
+      outcome: 'interessado',
+      notes: parsed.data.note,
+      next_step: '',
+      admin_id: admin.id,
+      admin_email: admin.email,
+    })
+    if (error && !isMissingTable(error)) {
+      console.error('[pipeline] registo de nota falhou:', error)
+      return { ok: false, message: 'Não foi possível guardar a nota.' }
+    }
+  }
+
+  revalidatePath('/admin/pipeline')
+  revalidatePath('/admin/prospecting')
+  return { ok: true }
+}

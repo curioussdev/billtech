@@ -12,11 +12,12 @@ type Status = 'checking' | 'ready' | 'invalid' | 'done'
 
 /**
  * Único sítio da aplicação que define a password — usado para o convite inicial, recuperação e
- * pedido de alteração nas definições. A sessão chega por fragmento da URL (`#access_token=...`),
- * processado automaticamente pelo cliente Supabase do browser (`detectSessionInUrl`) — por isso
- * verificamos aqui, no cliente, que a sessão ficou mesmo estabelecida antes de mostrar o formulário.
+ * pedido de alteração nas definições. Recebe `tokenHash`/`type` da query da página (nunca o
+ * `action_link` direto da Supabase — ver `src/actions/clients.ts`) e só os consome aqui, no
+ * cliente, via `verifyOtp`: é a única forma de garantir que foi uma pessoa a abrir a página, e não
+ * um scanner de segurança do email a pré-visitar o link antes de o destinatário o ver.
  */
-export function SetPasswordForm() {
+export function SetPasswordForm({ tokenHash, type }: { tokenHash?: string; type: 'recovery' | 'invite' }) {
   const router = useRouter()
   const [status, setStatus] = useState<Status>('checking')
   const [password, setPassword] = useState('')
@@ -25,9 +26,15 @@ export function SetPasswordForm() {
   const [error, setError] = useState<string | null>(null)
 
   useEffect(() => {
+    if (!tokenHash) {
+      setStatus('invalid')
+      return
+    }
     const supabase = createClient()
-    supabase.auth.getSession().then(({ data }) => setStatus(data.session ? 'ready' : 'invalid'))
-  }, [])
+    supabase.auth.verifyOtp({ token_hash: tokenHash, type }).then(({ error: verifyError }) => {
+      setStatus(verifyError ? 'invalid' : 'ready')
+    })
+  }, [tokenHash, type])
 
   async function submit(event: React.FormEvent) {
     event.preventDefault()
@@ -54,6 +61,9 @@ export function SetPasswordForm() {
       <div className="grid gap-4">
         <p role="alert" className="rounded-lg bg-destructive/10 p-3 text-sm font-medium text-destructive">
           Este link é inválido ou já expirou.
+        </p>
+        <p className="text-xs text-muted-foreground">
+          Isto pode acontecer se o filtro de segurança do seu email já tiver "aberto" o link por si antes de o ver. Peça um novo a partir de "Esqueceu-se da password?".
         </p>
         <Link href="/entrar" className="text-sm font-medium text-primary hover:underline">
           Voltar a entrar

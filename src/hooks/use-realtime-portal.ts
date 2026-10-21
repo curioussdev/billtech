@@ -42,7 +42,12 @@ export function useRealtimeMessages(requestId: string, initialMessages: RequestM
   return { messages, attachments }
 }
 
-/** Cliente: atualiza os contadores "por ler" (pedidos, comunicados) assim que algo muda no servidor. */
+/**
+ * Cliente: atualiza os contadores "por ler" (pedidos, comunicados) e o estado de pagamento (faturas,
+ * parcelas) assim que algo muda no servidor — sem recarregar a página. `installments` não tem
+ * `client_id` próprio, por isso vai sem filtro: a RLS já só entrega as linhas das faturas do
+ * próprio cliente.
+ */
 export function useClientPortalRealtime(clientId: string) {
   const router = useRouter()
 
@@ -53,6 +58,8 @@ export function useClientPortalRealtime(clientId: string) {
       .channel(`portal-nav-${clientId}`)
       .on('postgres_changes', { event: '*', schema: 'public', table: 'requests', filter: `client_id=eq.${clientId}` }, () => router.refresh())
       .on('postgres_changes', { event: '*', schema: 'public', table: 'broadcast_recipients', filter: `client_id=eq.${clientId}` }, () => router.refresh())
+      .on('postgres_changes', { event: '*', schema: 'public', table: 'invoices', filter: `client_id=eq.${clientId}` }, () => router.refresh())
+      .on('postgres_changes', { event: '*', schema: 'public', table: 'installments' }, () => router.refresh())
       .subscribe()
 
     return () => {
