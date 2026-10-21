@@ -10,6 +10,7 @@ import { Input } from '@/components/ui/input'
 import { Label } from '@/components/ui/label'
 import { listProjects } from '@/lib/admin/analytics'
 import { formatEUR } from '@/lib/admin/format'
+import { paymentTypeLabels } from '@/lib/finance/labels'
 import { PROJECT_STATUSES, type ProjectStatus } from '@/types/project'
 
 export const metadata: Metadata = { title: 'Entrega do projeto' }
@@ -44,6 +45,27 @@ export default async function EditDealDeliveryPage({ params }: { params: Promise
           <div className="flex items-center gap-2">
             <span className="text-sm text-muted-foreground">Estado atual:</span>
             <BusinessStatusBadge status={project.status} />
+          </div>
+
+          <div className="grid gap-1 rounded-xl border border-border bg-muted/30 p-4 text-sm">
+            <p className="font-semibold">Pagamento</p>
+            {project.paymentType ? (
+              <>
+                <p className="text-muted-foreground">
+                  {paymentTypeLabels[project.paymentType]}
+                  {project.paymentType === 'parcelado' && project.paymentInstallments ? ` em ${project.paymentInstallments}x` : ''}
+                </p>
+                {project.invoiceId ? (
+                  <Button render={<Link href={`/admin/finance${project.clientId ? `?cliente=${project.clientId}` : ''}`} />} nativeButton={false} variant="outline" size="sm" className="mt-1 w-fit rounded-lg">
+                    Ver fatura no financeiro
+                  </Button>
+                ) : (
+                  <p className="text-xs text-amber-700 dark:text-amber-400">Ainda sem fatura — associe este negócio a uma conta de cliente no Pipeline para a gerar automaticamente.</p>
+                )}
+              </>
+            ) : (
+              <p className="text-muted-foreground">Forma de pagamento não definida ao fechar este negócio.</p>
+            )}
           </div>
 
           <form action={updateDealDelivery} className="grid gap-4">

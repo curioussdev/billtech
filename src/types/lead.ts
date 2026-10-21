@@ -1,4 +1,5 @@
 import type { DealProjectType, LossReason } from '@/types/crm'
+import type { PaymentType } from '@/types/finance'
 import type { Sector } from '@/types/project'
 
 export const LEAD_STAGES = ['captado', 'qualificado', 'proposta', 'negociacao', 'ganho', 'perdido'] as const
@@ -31,6 +32,12 @@ export interface Lead {
   projectType?: DealProjectType
   /** Preenchido ao mover para "Perdido" (modal de motivo do Deal Board) */
   lossReason?: LossReason
+  /** Forma de pagamento acordada (opcional, preenchida ao fechar como Ganho). */
+  paymentType?: PaymentType
+  /** Nº de parcelas, só quando `paymentType === 'parcelado'`. */
+  paymentInstallments?: number
+  /** Fatura já criada para este negócio (exige conta de cliente associada). */
+  invoiceId?: string
 }
 
 export const MEETING_KINDS = ['reuniao', 'demo', 'follow-up'] as const

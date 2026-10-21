@@ -144,6 +144,10 @@ type WonLeadRow = {
   margin_pct: number | null
   stage_entered_at: string
   delivered_at: string | null
+  client_id: string | null
+  payment_type: ClientProject['paymentType'] | null
+  payment_installments: number | null
+  invoice_id: string | null
 }
 
 /**
@@ -156,7 +160,7 @@ export async function listProjects(): Promise<ClientProject[]> {
   try {
     const { data, error } = await createAdminClient()
       .from('leads')
-      .select('id, company, project_name, sector, estimated_value, delivery_status, margin_pct, stage_entered_at, delivered_at')
+      .select('id, company, project_name, sector, estimated_value, delivery_status, margin_pct, stage_entered_at, delivered_at, client_id, payment_type, payment_installments, invoice_id')
       .eq('stage', 'ganho')
       .order('stage_entered_at', { ascending: false })
     if (error) throw error
@@ -170,6 +174,10 @@ export async function listProjects(): Promise<ClientProject[]> {
       marginPct: r.margin_pct ?? 0,
       soldAt: r.stage_entered_at,
       ...(r.delivered_at ? { deliveredAt: r.delivered_at } : {}),
+      ...(r.client_id ? { clientId: r.client_id } : {}),
+      ...(r.payment_type ? { paymentType: r.payment_type } : {}),
+      ...(r.payment_installments ? { paymentInstallments: r.payment_installments } : {}),
+      ...(r.invoice_id ? { invoiceId: r.invoice_id } : {}),
     }))
   } catch (error) {
     console.error('[revenue] leitura de projetos vendidos falhou; a usar dados de demonstração:', error)

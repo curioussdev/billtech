@@ -3,6 +3,8 @@
  * Não confundir com o case de sucesso público da landing (`Project` em `@/lib/content/schema`).
  */
 
+import type { PaymentType } from '@/types/finance'
+
 export const SECTORS = ['oficinas', 'restauracao', 'clinicas', 'comercio', 'imobiliario', 'logistica', 'fitness'] as const
 export type Sector = (typeof SECTORS)[number]
 
@@ -23,4 +25,12 @@ export interface ClientProject {
   soldAt: string
   /** ISO 8601 — preenchido quando status === 'entregue' */
   deliveredAt?: string
+  /** Preenchido quando o negócio já tem conta de cliente associada — também determina se a forma de pagamento gera fatura já, ou só mais tarde. */
+  clientId?: string
+  /** Forma de pagamento acordada ao fechar o negócio (opcional). */
+  paymentType?: PaymentType
+  /** Nº de parcelas, só quando `paymentType === 'parcelado'`. */
+  paymentInstallments?: number
+  /** Fatura já criada no financeiro para este projeto, quando existe. */
+  invoiceId?: string
 }

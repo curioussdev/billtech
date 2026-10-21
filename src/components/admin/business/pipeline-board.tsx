@@ -328,6 +328,7 @@ export function PipelineBoard({
     setLeads((all) => all.map((l) => (l.id === leadId ? { ...l, stage: 'ganho', stageEnteredAt: now.toISOString(), projectName: payload.projectName, projectType: payload.projectType, estimatedValue: payload.value } : l)))
     setAnnouncement(`${leadLabel} movido para Ganho.`)
     push(`Negócio ganho: ${leadLabel} — ${formatEUR(payload.value)}.`, 'success')
+    if (payload.invoiceCreated) push('Fatura criada no financeiro.', 'success')
     setPendingClose(null)
   }
 
@@ -396,6 +397,7 @@ export function PipelineBoard({
         leadId={pendingClose?.leadId ?? ''}
         leadLabel={pendingClose?.leadLabel ?? ''}
         defaultValue={pendingClose ? (leads.find((l) => l.id === pendingClose.leadId)?.estimatedValue ?? 0) : 0}
+        hasClient={pendingClose ? Boolean(leads.find((l) => l.id === pendingClose.leadId)?.clientId) : false}
         onClose={() => setPendingClose(null)}
         onConfirm={confirmWin}
       />
