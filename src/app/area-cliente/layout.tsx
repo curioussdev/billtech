@@ -2,12 +2,15 @@ import type { Metadata } from 'next'
 import Link from 'next/link'
 import { Code2, LayoutDashboard, LogOut, MessageCircle, Plus } from 'lucide-react'
 import { logout } from '@/actions/auth'
+import { NotificationCenter, type NotificationItem } from '@/components/portal/notification-center'
 import { PortalNav } from '@/components/portal/portal-nav'
 import { WelcomeTour } from '@/components/portal/welcome-tour'
 import { ThemeToggle } from '@/components/theme-toggle'
 import { Button } from '@/components/ui/button'
 import { requireUser } from '@/lib/auth'
 import { getSiteContent } from '@/lib/content/get'
+import { formatEUR } from '@/lib/finance/labels'
+import { getRecentClientEvents } from '@/lib/portal/queries'
 import { createClient } from '@/lib/supabase/server'
 
 export const metadata: Metadata = { title: { default: 'Área de cliente', template: '%s | Área de cliente' }, robots: { index: false } }
@@ -15,12 +18,29 @@ export const metadata: Metadata = { title: { default: 'Área de cliente', templa
 export default async function PortalLayout({ children }: { children: React.ReactNode }) {
   const profile = await requireUser()
   const supabase = await createClient()
-  const [{ count }, { count: unreadMessages }, { count: openInvoices }, { general }] = await Promise.all([
+  const [{ count }, { count: unreadMessages }, { count: openInvoices }, { general }, unreadRequestRows, unreadBroadcastRows, overdueInvoiceRows, recentEvents] = await Promise.all([
     supabase.from('requests').select('id', { count: 'exact', head: true }).eq('client_id', profile.id).eq('client_unread', true),
     supabase.from('broadcast_recipients').select('broadcast_id', { count: 'exact', head: true }).eq('client_id', profile.id).is('read_at', null),
     supabase.from('invoices').select('id', { count: 'exact', head: true }).eq('status', 'atrasado'),
     getSiteContent(),
+    supabase.from('requests').select('id, title').eq('client_id', profile.id).eq('client_unread', true).order('last_message_at', { ascending: false }).limit(5),
+    supabase.from('broadcast_recipients').select('broadcast_id, broadcasts(subject)').eq('client_id', profile.id).is('read_at', null).limit(5),
+    supabase.from('invoices').select('id, description, final_amount, due_date').eq('client_id', profile.id).eq('status', 'atrasado').limit(5),
+    getRecentClientEvents(profile.id),
   ])
+
+  const unreadRequestItems: NotificationItem[] = (unreadRequestRows.data ?? []).map((r) => ({ id: r.id, label: r.title, href: `/area-cliente/pedidos/${r.id}` }))
+  const unreadBroadcastItems: NotificationItem[] = (unreadBroadcastRows.data ?? []).map((r) => ({
+    id: r.broadcast_id,
+    label: (r.broadcasts as unknown as { subject: string } | null)?.subject ?? 'Comunicado',
+    href: `/area-cliente/mensagens/${r.broadcast_id}`,
+  }))
+  const overdueInvoiceItems: NotificationItem[] = (overdueInvoiceRows.data ?? []).map((i) => ({
+    id: i.id,
+    label: i.description,
+    href: `/area-cliente/pagamentos/${i.id}`,
+    hint: `${formatEUR(i.final_amount)} · venceu em ${new Date(i.due_date).toLocaleDateString('pt-PT', { timeZone: 'UTC' })}`,
+  }))
 
   return (
     <div className="min-h-screen bg-muted/30">
@@ -46,6 +66,7 @@ export default async function PortalLayout({ children }: { children: React.React
                 <LayoutDashboard aria-hidden /> <span className="hidden sm:inline">Admin</span>
               </Button>
             )}
+            <NotificationCenter unreadRequests={unreadRequestItems} unreadBroadcasts={unreadBroadcastItems} overdueInvoices={overdueInvoiceItems} recentEvents={recentEvents} />
             <ThemeToggle />
             <form action={logout}>
               <Button type="submit" variant="ghost" size="sm" aria-label="Terminar sessão">

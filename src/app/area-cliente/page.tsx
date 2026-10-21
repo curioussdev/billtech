@@ -3,6 +3,7 @@ import Link from 'next/link'
 import { ArrowRight, FolderKanban, Inbox, MessageCircle, Receipt, Sparkles, Wrench, Bug, Calculator, LifeBuoy } from 'lucide-react'
 import { RequestStatusBadge, UnreadDot } from '@/components/portal/badges'
 import { InvoiceListItem } from '@/components/portal/invoice-widgets'
+import { Reveal } from '@/components/motion/reveal'
 import { LoyaltyCard } from '@/components/portal/loyalty-card'
 import { ProjectCard } from '@/components/portal/project-widgets'
 import { Button } from '@/components/ui/button'
@@ -51,16 +52,18 @@ export default async function PortalHomePage() {
           { label: 'Faturas em aberto', value: openInvoices.length, href: '/area-cliente/pagamentos', icon: Receipt, highlight: openInvoices.some((i) => i.status === 'atrasado') },
           { label: 'Pedidos em aberto', value: openRequests.length, href: '/area-cliente/pedidos', icon: Inbox },
           { label: 'Mensagens por ler', value: unread.length, href: '/area-cliente/pedidos', icon: MessageCircle, highlight: unread.length > 0 },
-        ].map((stat) => (
-          <Link key={stat.label} href={stat.href} className="flex items-center gap-4 rounded-2xl border border-border bg-card p-5 transition-colors hover:border-primary">
-            <span className={`flex size-11 items-center justify-center rounded-xl ${stat.highlight ? 'bg-primary text-primary-foreground' : 'bg-primary/10 text-primary'}`}>
-              <stat.icon aria-hidden />
-            </span>
-            <span>
-              <strong className="block text-2xl font-black tabular-nums">{stat.value}</strong>
-              <span className="text-sm text-muted-foreground">{stat.label}</span>
-            </span>
-          </Link>
+        ].map((stat, i) => (
+          <Reveal key={stat.label} delay={i * 0.06}>
+            <Link href={stat.href} className="flex items-center gap-4 rounded-2xl border border-border bg-card p-5 transition-colors hover:border-primary">
+              <span className={`flex size-11 items-center justify-center rounded-xl ${stat.highlight ? 'bg-primary text-primary-foreground' : 'bg-primary/10 text-primary'}`}>
+                <stat.icon aria-hidden />
+              </span>
+              <span>
+                <strong className="block text-2xl font-black tabular-nums">{stat.value}</strong>
+                <span className="text-sm text-muted-foreground">{stat.label}</span>
+              </span>
+            </Link>
+          </Reveal>
         ))}
       </section>
 
@@ -99,9 +102,11 @@ export default async function PortalHomePage() {
             </p>
           ) : (
             <ul className="mt-4 grid gap-4">
-              {projects.slice(0, 3).map((project) => (
+              {projects.slice(0, 3).map((project, i) => (
                 <li key={project.id}>
-                  <ProjectCard project={project} />
+                  <Reveal delay={i * 0.08} y={16}>
+                    <ProjectCard project={project} />
+                  </Reveal>
                 </li>
               ))}
             </ul>

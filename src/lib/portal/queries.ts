@@ -24,6 +24,19 @@ export async function getProjectEvents(projectId: string): Promise<ProjectEvent[
   return (data ?? []) as ProjectEvent[]
 }
 
+export type ClientProjectEvent = ProjectEvent & { projectName: string }
+
+/** Últimos eventos de TODOS os projetos do cliente — para o centro de notificações. */
+export async function getRecentClientEvents(clientId: string, limit = 8): Promise<ClientProjectEvent[]> {
+  const supabase = await createClient()
+  const { data: projects } = await supabase.from('client_projects').select('id, name').eq('client_id', clientId)
+  const projectIds = (projects ?? []).map((p) => p.id as string)
+  if (projectIds.length === 0) return []
+  const nameById = new Map((projects ?? []).map((p) => [p.id as string, p.name as string]))
+  const { data: events } = await supabase.from('client_project_events').select('*').in('project_id', projectIds).order('created_at', { ascending: false }).limit(limit)
+  return (events ?? []).map((e) => ({ ...(e as ProjectEvent), projectName: nameById.get((e as ProjectEvent).project_id) ?? '' }))
+}
+
 /** Documentos do projeto (contratos, acessos, entregáveis) — só o admin carrega, ver `actions/documents.ts`. */
 export async function getProjectDocuments(projectId: string): Promise<ProjectDocument[]> {
   const supabase = await createClient()
