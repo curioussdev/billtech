@@ -4,6 +4,7 @@ import { notFound } from 'next/navigation'
 import { ArrowLeft } from 'lucide-react'
 import { updateDealDelivery } from '@/actions/pipeline'
 import { BusinessStatusBadge } from '@/components/admin/business/widgets'
+import { SetPaymentPlanForm } from '@/components/admin/revenue/set-payment-plan-form'
 import { Button } from '@/components/ui/button'
 import { Card, CardContent } from '@/components/ui/card'
 import { Input } from '@/components/ui/input'
@@ -63,8 +64,10 @@ export default async function EditDealDeliveryPage({ params }: { params: Promise
                   <p className="text-xs text-amber-700 dark:text-amber-400">Ainda sem fatura — associe este negócio a uma conta de cliente no Pipeline para a gerar automaticamente.</p>
                 )}
               </>
+            ) : project.clientId ? (
+              <SetPaymentPlanForm leadId={project.id} />
             ) : (
-              <p className="text-muted-foreground">Forma de pagamento não definida ao fechar este negócio.</p>
+              <p className="text-xs text-amber-700 dark:text-amber-400">Associe este negócio a uma conta de cliente no Pipeline para poder definir a forma de pagamento.</p>
             )}
           </div>
 

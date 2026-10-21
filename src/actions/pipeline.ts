@@ -218,6 +218,49 @@ export async function markDealWon(input: unknown): Promise<DealCloseResult> {
   return { ok: true, invoiceCreated }
 }
 
+const setPaymentPlanSchema = z
+  .object({
+    leadId: z.string().min(1).max(60),
+    paymentType: z.enum(PAYMENT_TYPES),
+    installments: z.coerce.number().int().min(2).max(12).optional(),
+    dueDate: z.iso.date(),
+  })
+  .refine((v) => v.paymentType !== 'parcelado' || v.installments !== undefined, { message: 'Indique o número de parcelas.' })
+
+export type SetPaymentPlanResult = { ok: true } | { ok: false; message: string }
+
+/**
+ * Define (uma vez) a forma de pagamento de um negócio JÁ ganho que ainda não tinha nenhuma — ou
+ * porque foi fechado antes desta funcionalidade existir, ou porque na altura não foi definida. Só
+ * para negócios com conta de cliente já associada e sem fatura ainda; para os outros casos, a
+ * fatura é criada automaticamente ao fechar como Ganho (`markDealWon`) ou ao associar o cliente
+ * depois (`linkLeadToClient`) — esta ação é só a rede de segurança para o que ficou para trás.
+ */
+export async function setDealPaymentPlan(input: unknown): Promise<SetPaymentPlanResult> {
+  const admin = await requireAdmin()
+  const parsed = setPaymentPlanSchema.safeParse(input)
+  if (!parsed.success) return { ok: false, message: parsed.error.issues[0]?.message ?? 'Dados inválidos.' }
+  const { leadId, paymentType, installments, dueDate } = parsed.data
+
+  const db = createAdminClient()
+  const { data: lead } = await db.from('leads').select('project_name, estimated_value, client_id, invoice_id').eq('id', leadId).eq('stage', 'ganho').maybeSingle()
+  if (!lead) return { ok: false, message: 'Negócio não encontrado.' }
+  if (lead.invoice_id) return { ok: false, message: 'Este negócio já tem fatura.' }
+  if (!lead.client_id) return { ok: false, message: 'Associe uma conta de cliente a este negócio primeiro (no Pipeline).' }
+
+  const result = await createInvoiceForDeal(db, { clientId: lead.client_id, description: lead.project_name ?? 'Projeto', amount: lead.estimated_value, paymentType, installments: installments ?? null, dueDate })
+  if (!('invoiceId' in result)) {
+    console.error('[pipeline] criação da fatura (plano retroativo) falhou:', result.error)
+    return { ok: false, message: 'Não foi possível criar a fatura.' }
+  }
+
+  await db.from('leads').update({ payment_type: paymentType, payment_installments: paymentType === 'parcelado' ? installments : null, invoice_id: result.invoiceId }).eq('id', leadId)
+  await logAudit({ admin, action: 'CREATE_INVOICE', resource: 'financeiro', targetId: result.invoiceId, details: { leadId, retroactive: true } })
+  revalidatePath(`/admin/revenue/${leadId}`)
+  revalidatePath('/admin/finance')
+  return { ok: true }
+}
+
 const lossSchema = z.object({
   leadId: z.string().min(1).max(60),
   leadLabel: z.string().min(1).max(160),
