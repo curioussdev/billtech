@@ -185,6 +185,23 @@ export async function listProjects(): Promise<ClientProject[]> {
   }
 }
 
+/**
+ * Versão leve de `listLeads()`, só com os campos que o Fast-Log (no layout do admin, carregado em
+ * TODAS as páginas) precisa — evita um `select('*')` à tabela inteira de leads a cada navegação só
+ * para preencher 3 campos de um modal.
+ */
+export async function listLeadsSummary(): Promise<Pick<Lead, 'id' | 'company' | 'stage'>[]> {
+  if (!isLive()) return mockLeads.map((l) => ({ id: l.id, company: l.company, stage: l.stage }))
+  try {
+    const { data, error } = await createAdminClient().from('leads').select('id, company, stage').order('created_at', { ascending: false })
+    if (error) throw error
+    return data as Pick<Lead, 'id' | 'company' | 'stage'>[]
+  } catch (error) {
+    console.error('[crm] leitura resumida de leads falhou; a usar dados de demonstração:', error)
+    return mockLeads.map((l) => ({ id: l.id, company: l.company, stage: l.stage }))
+  }
+}
+
 /** Leads/Pipeline: lê a tabela real `leads`; sem Supabase configurado, cai nos dados de demonstração. */
 export async function listLeads(): Promise<Lead[]> {
   if (!isLive()) return mockLeads

@@ -5,7 +5,7 @@ import { z } from 'zod'
 import { siteUrl } from '@/data/site'
 import { getRecipient, sendEmail } from '@/lib/contact-delivery'
 import { logAudit } from '@/lib/audit'
-import { FORBIDDEN_MESSAGE, requireAdmin, requireSuperAdminForAction, requireUser } from '@/lib/auth'
+import { FORBIDDEN_MESSAGE, requireAdmin, requireUser, verifySuperAdminAutonomy } from '@/lib/auth'
 import { emailLayout, escapeHtml } from '@/lib/email-template'
 import { createAdminClient } from '@/lib/supabase/server'
 import { isValidNif } from '@/lib/validations/nif'
@@ -95,21 +95,24 @@ const resolveSchema = z.object({
  * Admin aprova (aplica a alteração) ou rejeita um pedido pendente de NIF/email. Aprovar uma
  * alteração de email muda a identidade de login do cliente — exige Super Admin, não só Admin; NIF
  * (dado fiscal, sem impacto no acesso) só exige Admin.
+ *
+ * A verificação de autorização corre sempre primeiro — antes de qualquer leitura à base de dados,
+ * mesmo que o nível exato exigido (Admin vs. Super Admin) só se saiba depois de ler `request.field`.
  */
 export async function resolveProfileChangeRequest(input: unknown): Promise<ProfileChangeResult> {
   const parsed = resolveSchema.safeParse(input)
   if (!parsed.success) return { ok: false, message: 'Pedido inválido.' }
   const { requestId, approve, note } = parsed.data
 
+  const admin = await requireAdmin()
   const db = createAdminClient()
   const { data: request, error: fetchError } = await db.from('profile_change_requests').select('*').eq('id', requestId).eq('status', 'pendente').maybeSingle()
   if (fetchError || !request) return { ok: false, message: 'Pedido não encontrado ou já resolvido.' }
 
-  const admin =
-    request.field === 'email'
-      ? await requireSuperAdminForAction({ action: 'RESOLVE_PROFILE_CHANGE', resource: 'clientes' })
-      : await requireAdmin()
-  if (!admin) return { ok: false, message: FORBIDDEN_MESSAGE }
+  if (request.field === 'email' && !verifySuperAdminAutonomy(admin)) {
+    await logAudit({ admin, action: 'ACCESS_DENIED', resource: 'seguranca', details: { attempted: { action: 'RESOLVE_PROFILE_CHANGE', resource: 'clientes' } } })
+    return { ok: false, message: FORBIDDEN_MESSAGE }
+  }
 
   if (approve) {
     if (request.field === 'nif') {

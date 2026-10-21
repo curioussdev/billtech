@@ -96,7 +96,7 @@ async function sendConfirmationToSender(lead: Lead, replyTo: string) {
     if ((count ?? 0) > 2) return
   }
 
-  const firstName = lead.name.trim().split(/s+/)[0]
+  const firstName = lead.name.trim().split(/\s+/)[0]
   await sendEmail({
     to: lead.email,
     replyTo,

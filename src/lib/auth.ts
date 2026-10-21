@@ -1,4 +1,5 @@
 import 'server-only'
+import { cache } from 'react'
 import { redirect } from 'next/navigation'
 import { logAudit } from '@/lib/audit'
 import { isSuperAdminEmail } from '@/lib/super-admins'
@@ -7,8 +8,12 @@ import { createClient } from '@/lib/supabase/server'
 
 export type Profile = { id: string; email: string; full_name: string; company: string; role: 'client' | 'admin'; nif: string | null; onboarding_completed_at: string | null }
 
-/** Utilizador autenticado + perfil, ou null. Valida o JWT no servidor (getUser). */
-export async function getCurrentProfile(): Promise<Profile | null> {
+/**
+ * Utilizador autenticado + perfil, ou null. Valida o JWT no servidor (getUser). `cache()` evita
+ * repetir a verificação + query a `profiles` quando layout e página (ou várias partes da mesma
+ * árvore) chamam isto no mesmo pedido — memoizado só durante esse pedido, nunca entre pedidos.
+ */
+export const getCurrentProfile = cache(async (): Promise<Profile | null> => {
   if (!isSupabaseConfigured) return null
   const supabase = await createClient()
   const { data: userData } = await supabase.auth.getUser()
@@ -20,7 +25,7 @@ export async function getCurrentProfile(): Promise<Profile | null> {
     .eq('id', userData.user.id)
     .single()
   return (profile as Profile | null) ?? null
-}
+})
 
 export async function requireUser(): Promise<Profile> {
   const profile = await getCurrentProfile()

@@ -51,10 +51,9 @@ sendTelemetry('uptime', { status: 'ok' })`
 
 export default async function ExternalSiteDetailPage({ params }: { params: Promise<{ id: string }> }) {
   const { id } = await params
-  const site = await getExternalSite(id)
+  const [site, summary] = await Promise.all([getExternalSite(id), getTelemetrySummary(id)])
   if (!site) notFound()
 
-  const summary = await getTelemetrySummary(id)
   const online = site.lastPingAt ? Date.now() - new Date(site.lastPingAt).getTime() < 10 * 60_000 : false
 
   return (

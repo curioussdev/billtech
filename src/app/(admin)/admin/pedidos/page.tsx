@@ -19,9 +19,11 @@ export default async function AdminRequestsPage({ searchParams }: { searchParams
   const { ver } = await searchParams
   const filter = filters.find((f) => f.key === ver)?.key ?? 'abertos'
 
-  const all = await getRequests() // RLS de admin: vê todos
-  const supabase = await createClient()
-  const { data: profiles } = await supabase.from('profiles').select('id, full_name, email, company')
+  const [all, profilesResult] = await Promise.all([
+    getRequests(), // RLS de admin: vê todos
+    createClient().then((supabase) => supabase.from('profiles').select('id, full_name, email, company')),
+  ])
+  const profiles = profilesResult.data
   const clients = new Map((profiles ?? []).map((p) => [p.id as string, p]))
 
   const matchers = {

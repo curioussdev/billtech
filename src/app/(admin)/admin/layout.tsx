@@ -5,7 +5,7 @@ import { FastLogModal } from '@/components/admin/crm/fast-log-modal'
 import { ToastProvider } from '@/components/admin/crm/toast'
 import { AdminNotificationCenter } from '@/components/admin/layout/notification-center'
 import { SidebarInset, SidebarProvider, SidebarTrigger } from '@/components/ui/sidebar'
-import { listLeads } from '@/lib/admin/analytics'
+import { listLeadsSummary } from '@/lib/admin/analytics'
 import { getAdminNotifications } from '@/lib/admin/notifications'
 import { requireAdmin } from '@/lib/auth'
 import { createClient } from '@/lib/supabase/server'
@@ -18,7 +18,7 @@ export default async function AdminLayout({ children }: { children: React.ReactN
   const supabase = await createClient()
   const [{ count: unreadRequests }, leads, notifications] = await Promise.all([
     supabase.from('requests').select('id', { count: 'exact', head: true }).eq('admin_unread', true),
-    listLeads(),
+    listLeadsSummary(),
     getAdminNotifications(),
   ])
 
@@ -38,7 +38,7 @@ export default async function AdminLayout({ children }: { children: React.ReactN
           </main>
         </SidebarInset>
         {/* Fast-Log: FAB + Cmd/Ctrl+K, disponível em toda a área de admin */}
-        <FastLogModal leads={leads.map((l) => ({ id: l.id, company: l.company, stage: l.stage }))} />
+        <FastLogModal leads={leads} />
       </SidebarProvider>
     </ToastProvider>
   )
