@@ -5,8 +5,9 @@ import { FinanceKpiCards } from '@/components/admin/finance/kpi-cards'
 import { InvoiceTable } from '@/components/admin/finance/invoice-table'
 import { LedgerSection } from '@/components/admin/finance/ledger-section'
 import { LoyaltySection } from '@/components/admin/finance/loyalty-section'
+import { PaymentsTable } from '@/components/admin/finance/payments-table'
 import { Button } from '@/components/ui/button'
-import { listAllInvoices, listDiscountCodes, listExpenses, listFinanceSummary, listPortalClients } from '@/lib/finance/admin-queries'
+import { listAllInvoices, listAllPayments, listDiscountCodes, listExpenses, listFinanceSummary, listPortalClients } from '@/lib/finance/admin-queries'
 import { computeFinanceKpis } from '@/lib/finance/kpis'
 import { buildLedger } from '@/lib/finance/ledger'
 import { INVOICE_STATUSES } from '@/types/finance'
@@ -20,8 +21,9 @@ type Search = { status?: string; cliente?: string; periodo?: string }
 
 export default async function AdminFinancePage({ searchParams }: { searchParams: Promise<Search> }) {
   const sp = await searchParams
-  const [invoices, summaries, codes, clients, expenses] = await Promise.all([
+  const [invoices, payments, summaries, codes, clients, expenses] = await Promise.all([
     listAllInvoices(),
+    listAllPayments(),
     listFinanceSummary(),
     listDiscountCodes(),
     listPortalClients(),
@@ -37,6 +39,11 @@ export default async function AdminFinancePage({ searchParams }: { searchParams:
     if (sp.status && i.status !== sp.status) return false
     if (sp.cliente && i.clientId !== sp.cliente) return false
     if (sp.periodo === 'mes' && i.dueDate.slice(0, 7) !== monthKey) return false
+    return true
+  })
+  const filteredPayments = payments.filter((p) => {
+    if (sp.cliente && p.clientId !== sp.cliente) return false
+    if (sp.periodo === 'mes' && (p.paidAt ?? '').slice(0, 7) !== monthKey) return false
     return true
   })
 
@@ -93,6 +100,16 @@ export default async function AdminFinancePage({ searchParams }: { searchParams:
         {filtered.length} {filtered.length === 1 ? 'fatura' : 'faturas'}
       </p>
       <InvoiceTable invoices={filtered} />
+
+      <section aria-labelledby="pagamentos-registados" className="grid gap-4">
+        <div>
+          <h2 id="pagamentos-registados" className="text-xl font-bold">
+            Pagamentos registados
+          </h2>
+          <p className="text-sm text-muted-foreground">Sem Stripe ativo, tudo o que entra é cobrado fora da plataforma — aqui fica o registo de quando, de quem, quanto e por quem.</p>
+        </div>
+        <PaymentsTable payments={filteredPayments} />
+      </section>
 
       <section aria-labelledby="ledger" className="grid gap-4">
         <div>

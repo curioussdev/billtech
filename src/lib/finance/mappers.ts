@@ -41,6 +41,7 @@ export type PaymentRow = {
   payment_method: string
   paid_at: string | null
   created_at: string
+  registered_by: string | null
 }
 
 export type LoyaltyRow = { client_id: string; loyalty_points: number; loyalty_tier: ClientLoyalty['loyaltyTier']; total_spent: number; updated_at: string }
@@ -83,6 +84,7 @@ export const mapPayment = (r: PaymentRow): Payment => ({
   paymentMethod: r.payment_method,
   paidAt: r.paid_at,
   createdAt: r.created_at,
+  registeredBy: r.registered_by,
 })
 
 export const mapLoyalty = (r: LoyaltyRow): ClientLoyalty => ({ clientId: r.client_id, loyaltyPoints: r.loyalty_points, loyaltyTier: r.loyalty_tier, totalSpent: r.total_spent, updatedAt: r.updated_at })

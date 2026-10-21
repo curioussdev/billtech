@@ -294,7 +294,7 @@ export async function markInvoicePaidExternally(input: unknown): Promise<Finance
     settledAmount = remaining
   }
 
-  await db.from('payments').insert({ invoice_id: invoice.id, installment_id: installmentId, amount: settledAmount, status: 'sucesso', payment_method: method, paid_at: now })
+  await db.from('payments').insert({ invoice_id: invoice.id, installment_id: installmentId, amount: settledAmount, status: 'sucesso', payment_method: method, paid_at: now, registered_by: admin.id })
 
   const fullyPaid = alreadyPaid + settledAmount >= (invoice.final_amount as number) - 0.01
   if (fullyPaid) {

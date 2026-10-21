@@ -82,6 +82,8 @@ export interface Payment {
   paymentMethod: string
   paidAt: string | null
   createdAt: string
+  /** Admin que registou o pagamento manualmente (fora da plataforma); nulo quando foi o próprio cliente (Stripe). */
+  registeredBy: string | null
 }
 
 /** Fatura com as suas parcelas e pagamentos já carregados — a forma mais usada nas páginas. */

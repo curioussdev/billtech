@@ -8,7 +8,7 @@ import { cn } from '@/lib/utils'
 const items = [
   { href: '/area-cliente', label: 'Visão geral', exact: true },
   { href: '/area-cliente/projetos', label: 'Projetos' },
-  { href: '/area-cliente/pagamentos', label: 'Faturas' },
+  { href: '/area-cliente/pagamentos', label: 'Pagamentos' },
   { href: '/area-cliente/pedidos', label: 'Pedidos' },
   { href: '/area-cliente/mensagens', label: 'Mensagens' },
   { href: '/area-cliente/solucoes', label: 'Soluções' },

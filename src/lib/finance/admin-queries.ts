@@ -3,7 +3,7 @@ import { mockDiscountCodes, mockFinanceClients, mockInstallments, mockInvoices, 
 import { type InstallmentRow, type LoyaltyRow, type PaymentRow, mapInstallment, mapInvoice, mapLoyalty, mapPayment } from '@/lib/finance/mappers'
 import { isSupabaseConfigured } from '@/lib/supabase/config'
 import { createAdminClient } from '@/lib/supabase/server'
-import type { ClientFinanceSummary, ClientLoyalty, DiscountCode, Expense, InvoiceWithDetails } from '@/types/finance'
+import type { ClientFinanceSummary, ClientLoyalty, DiscountCode, Expense, InvoiceWithDetails, Payment } from '@/types/finance'
 
 /**
  * Leitura do módulo financeiro, do lado do admin (`/admin/finance`). Sem Supabase configurado (ou
@@ -73,6 +73,37 @@ export async function listAllInvoices(): Promise<AdminInvoice[]> {
 export async function getInvoiceAdmin(id: string): Promise<AdminInvoice | null> {
   const all = await listAllInvoices()
   return all.find((i) => i.id === id) ?? null
+}
+
+export type AdminPayment = Payment & { clientId: string; clientName: string; clientCompany: string; invoiceDescription: string; registeredByEmail: string | null }
+
+/**
+ * Todos os pagamentos com sucesso, de todas as faturas, com o cliente/fatura já resolvidos — achata
+ * os `payments` que `listAllInvoices()` já carrega (sem query nova). Alimenta a secção "Pagamentos
+ * registados" do admin: visão CRM do que já foi recebido fora da plataforma, por quem e de quem.
+ */
+export async function listAllPayments(): Promise<AdminPayment[]> {
+  const invoices = await listAllInvoices()
+  const flattened = invoices.flatMap((invoice) =>
+    invoice.payments
+      .filter((p) => p.status === 'sucesso')
+      .map((p) => ({ ...p, clientId: invoice.clientId, clientName: invoice.clientName, clientCompany: invoice.clientCompany, invoiceDescription: invoice.description })),
+  )
+
+  if (!isLive() || flattened.length === 0) return flattened.map((p) => ({ ...p, registeredByEmail: null }))
+
+  const adminIds = [...new Set(flattened.map((p) => p.registeredBy).filter((id): id is string => Boolean(id)))]
+  const emailMap = new Map<string, string>()
+  if (adminIds.length > 0) {
+    try {
+      const { data } = await createAdminClient().from('profiles').select('id, email').in('id', adminIds)
+      for (const row of data ?? []) emailMap.set(row.id as string, row.email as string)
+    } catch (error) {
+      console.error('[finance] leitura de emails de admins (registered_by) falhou:', error)
+    }
+  }
+
+  return flattened.map((p) => ({ ...p, registeredByEmail: p.registeredBy ? (emailMap.get(p.registeredBy) ?? null) : null })).sort((a, b) => (b.paidAt ?? '').localeCompare(a.paidAt ?? ''))
 }
 
 /** Clientes ordenados por total gasto — a secção de fidelização/retenção. */

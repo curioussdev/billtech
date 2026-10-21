@@ -2,7 +2,7 @@ import type { Metadata } from 'next'
 import { InvoiceListItem } from '@/components/portal/invoice-widgets'
 import { getMyInvoices } from '@/lib/finance/queries'
 
-export const metadata: Metadata = { title: 'Faturas' }
+export const metadata: Metadata = { title: 'Pagamentos e Faturas' }
 
 export default async function PortalInvoicesPage() {
   const invoices = await getMyInvoices()
@@ -12,8 +12,8 @@ export default async function PortalInvoicesPage() {
   return (
     <div className="grid gap-8">
       <header>
-        <h1 className="text-3xl font-black tracking-tight">Faturas</h1>
-        <p className="mt-2 text-muted-foreground">Faturas em aberto e histórico de pagamentos — tudo num só lugar, sem trocar emails.</p>
+        <h1 className="text-3xl font-black tracking-tight">Pagamentos e Faturas</h1>
+        <p className="mt-2 text-muted-foreground">Faturas em aberto, parcelas e pagamentos já feitos — incluindo os feitos fora da plataforma — tudo num só lugar, sem trocar emails.</p>
       </header>
 
       <section aria-labelledby="faturas-abertas" className="grid gap-4">
