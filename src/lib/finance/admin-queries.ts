@@ -84,6 +84,26 @@ export async function getMostRecentInvoiceForClient(clientId: string): Promise<A
 
 export type AdminPayment = Payment & { clientId: string; clientName: string; clientCompany: string; invoiceDescription: string; registeredByEmail: string | null }
 
+type FlatPayment = Payment & { clientId: string; clientName: string; clientCompany: string; invoiceDescription: string }
+
+/** Resolve o email de quem registou cada pagamento (`registeredBy`), partilhado por `listAllPayments`/`listAllPaymentAttempts` para não duplicar a mesma leitura a `profiles`. */
+async function resolveRegisteredByEmails(payments: FlatPayment[]): Promise<AdminPayment[]> {
+  if (!isLive() || payments.length === 0) return payments.map((p) => ({ ...p, registeredByEmail: null }))
+
+  const adminIds = [...new Set(payments.map((p) => p.registeredBy).filter((id): id is string => Boolean(id)))]
+  const emailMap = new Map<string, string>()
+  if (adminIds.length > 0) {
+    try {
+      const { data } = await createAdminClient().from('profiles').select('id, email').in('id', adminIds)
+      for (const row of data ?? []) emailMap.set(row.id as string, row.email as string)
+    } catch (error) {
+      console.error('[finance] leitura de emails de admins (registered_by) falhou:', error)
+    }
+  }
+
+  return payments.map((p) => ({ ...p, registeredByEmail: p.registeredBy ? (emailMap.get(p.registeredBy) ?? null) : null }))
+}
+
 /**
  * Todos os pagamentos com sucesso, de todas as faturas, com o cliente/fatura já resolvidos — achata
  * os `payments` que `listAllInvoices()` já carrega (sem query nova). Alimenta a secção "Pagamentos
@@ -96,21 +116,22 @@ export async function listAllPayments(): Promise<AdminPayment[]> {
       .filter((p) => p.status === 'sucesso')
       .map((p) => ({ ...p, clientId: invoice.clientId, clientName: invoice.clientName, clientCompany: invoice.clientCompany, invoiceDescription: invoice.description })),
   )
+  const resolved = await resolveRegisteredByEmails(flattened)
+  return resolved.sort((a, b) => (b.paidAt ?? '').localeCompare(a.paidAt ?? ''))
+}
 
-  if (!isLive() || flattened.length === 0) return flattened.map((p) => ({ ...p, registeredByEmail: null }))
-
-  const adminIds = [...new Set(flattened.map((p) => p.registeredBy).filter((id): id is string => Boolean(id)))]
-  const emailMap = new Map<string, string>()
-  if (adminIds.length > 0) {
-    try {
-      const { data } = await createAdminClient().from('profiles').select('id, email').in('id', adminIds)
-      for (const row of data ?? []) emailMap.set(row.id as string, row.email as string)
-    } catch (error) {
-      console.error('[finance] leitura de emails de admins (registered_by) falhou:', error)
-    }
-  }
-
-  return flattened.map((p) => ({ ...p, registeredByEmail: p.registeredBy ? (emailMap.get(p.registeredBy) ?? null) : null })).sort((a, b) => (b.paidAt ?? '').localeCompare(a.paidAt ?? ''))
+/**
+ * Todas as TENTATIVAS de pagamento, qualquer estado (pendente/sucesso/falhou/reembolsado) — ao
+ * contrário de `listAllPayments` (só sucesso), para `/admin/finance/pagamentos`: uma cobrança ainda
+ * a processar (SEPA) ou que falhou não pode ficar invisível ao admin.
+ */
+export async function listAllPaymentAttempts(): Promise<AdminPayment[]> {
+  const invoices = await listAllInvoices()
+  const flattened = invoices.flatMap((invoice) =>
+    invoice.payments.map((p) => ({ ...p, clientId: invoice.clientId, clientName: invoice.clientName, clientCompany: invoice.clientCompany, invoiceDescription: invoice.description })),
+  )
+  const resolved = await resolveRegisteredByEmails(flattened)
+  return resolved.sort((a, b) => b.createdAt.localeCompare(a.createdAt))
 }
 
 /** Clientes ordenados por total gasto — a secção de fidelização/retenção. */

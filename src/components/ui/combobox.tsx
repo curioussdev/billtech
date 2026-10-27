@@ -130,7 +130,7 @@ function SearchableSelect({
         <ComboboxPositioner align="start">
           <ComboboxPopup>
             <ComboboxEmpty>{emptyMessage}</ComboboxEmpty>
-            <ComboboxList>{(itemValue: string) => <ComboboxItem value={itemValue}>{labelOf(itemValue)}</ComboboxItem>}</ComboboxList>
+            <ComboboxList>{(itemValue: string) => <ComboboxItem key={itemValue} value={itemValue}>{labelOf(itemValue)}</ComboboxItem>}</ComboboxList>
           </ComboboxPopup>
         </ComboboxPositioner>
       </Combobox>

@@ -52,14 +52,14 @@ type InvoiceSeed = {
 const seeds: InvoiceSeed[] = [
   // ─── Oficina Rápida Norte ───────────────────────────────────────────────
   {
-    invoice: { id: 'inv-01', clientId: 'fc-oficina-rapida-norte', projectId: null, description: 'Website institucional — Oficina Rápida Norte', totalAmount: 2200, discountAmount: 0, discountCodeId: null, finalAmount: 2200, status: 'pago', dueDate: ago(40), paymentType: 'unico', createdAt: ago(55), updatedAt: ago(38) },
+    invoice: { id: 'inv-01', clientId: 'fc-oficina-rapida-norte', projectId: null, description: 'Website institucional — Oficina Rápida Norte', totalAmount: 2200, discountAmount: 0, discountCodeId: null, finalAmount: 2200, status: 'pago', dueDate: ago(40), paymentType: 'unico', createdAt: ago(55), updatedAt: ago(38), autopayEnabled: false },
     payments: [{ id: 'pay-01', invoiceId: 'inv-01', installmentId: null, amount: 2200, status: 'sucesso', stripePaymentIntentId: null, stripeCheckoutSessionId: null, paymentMethod: 'transferencia', paidAt: ago(38), createdAt: ago(38) }],
   },
   {
-    invoice: { id: 'inv-02', clientId: 'fc-oficina-rapida-norte', projectId: null, description: 'Manutenção mensal — setembro', totalAmount: 1200, discountAmount: 0, discountCodeId: null, finalAmount: 1200, status: 'atrasado', dueDate: ago(10), paymentType: 'unico', createdAt: ago(25), updatedAt: ago(25) },
+    invoice: { id: 'inv-02', clientId: 'fc-oficina-rapida-norte', projectId: null, description: 'Manutenção mensal — setembro', totalAmount: 1200, discountAmount: 0, discountCodeId: null, finalAmount: 1200, status: 'atrasado', dueDate: ago(10), paymentType: 'unico', createdAt: ago(25), updatedAt: ago(25), autopayEnabled: false },
   },
   {
-    invoice: { id: 'inv-03', clientId: 'fc-oficina-rapida-norte', projectId: null, description: 'Integração de agendamento online', totalAmount: 1200, discountAmount: 0, discountCodeId: null, finalAmount: 1200, status: 'pendente', dueDate: ahead(20), paymentType: 'parcelado', createdAt: ago(5), updatedAt: ago(5) },
+    invoice: { id: 'inv-03', clientId: 'fc-oficina-rapida-norte', projectId: null, description: 'Integração de agendamento online', totalAmount: 1200, discountAmount: 0, discountCodeId: null, finalAmount: 1200, status: 'pendente', dueDate: ahead(20), paymentType: 'parcelado', createdAt: ago(5), updatedAt: ago(5), autopayEnabled: false },
     installments: [
       { id: 'ins-03-1', invoiceId: 'inv-03', installmentNumber: 1, amount: 400, dueDate: ago(2), status: 'pago', stripePaymentIntentId: null, createdAt: ago(5) },
       { id: 'ins-03-2', invoiceId: 'inv-03', installmentNumber: 2, amount: 400, dueDate: ahead(10), status: 'pendente', stripePaymentIntentId: null, createdAt: ago(5) },
@@ -70,15 +70,15 @@ const seeds: InvoiceSeed[] = [
 
   // ─── Centro Médico Aurora ───────────────────────────────────────────────
   {
-    invoice: { id: 'inv-04', clientId: 'fc-centro-medico-aurora', projectId: null, description: 'Dashboard financeiro e de agendamentos', totalAmount: 6000, discountAmount: 0, discountCodeId: null, finalAmount: 6000, status: 'pago', dueDate: ago(90), paymentType: 'unico', createdAt: ago(110), updatedAt: ago(88) },
+    invoice: { id: 'inv-04', clientId: 'fc-centro-medico-aurora', projectId: null, description: 'Dashboard financeiro e de agendamentos', totalAmount: 6000, discountAmount: 0, discountCodeId: null, finalAmount: 6000, status: 'pago', dueDate: ago(90), paymentType: 'unico', createdAt: ago(110), updatedAt: ago(88), autopayEnabled: false },
     payments: [{ id: 'pay-04', invoiceId: 'inv-04', installmentId: null, amount: 6000, status: 'sucesso', stripePaymentIntentId: null, stripeCheckoutSessionId: null, paymentMethod: 'transferencia', paidAt: ago(88), createdAt: ago(88) }],
   },
   {
-    invoice: { id: 'inv-05', clientId: 'fc-centro-medico-aurora', projectId: null, description: 'Módulo de faturação eletrónica', totalAmount: 4500, discountAmount: 450, discountCodeId: 'disc-fidelidade10', finalAmount: 4050, status: 'pago', dueDate: ago(30), paymentType: 'unico', createdAt: ago(45), updatedAt: ago(28) },
+    invoice: { id: 'inv-05', clientId: 'fc-centro-medico-aurora', projectId: null, description: 'Módulo de faturação eletrónica', totalAmount: 4500, discountAmount: 450, discountCodeId: 'disc-fidelidade10', finalAmount: 4050, status: 'pago', dueDate: ago(30), paymentType: 'unico', createdAt: ago(45), updatedAt: ago(28), autopayEnabled: false },
     payments: [{ id: 'pay-05', invoiceId: 'inv-05', installmentId: null, amount: 4050, status: 'sucesso', stripePaymentIntentId: null, stripeCheckoutSessionId: null, paymentMethod: 'cartao', paidAt: ago(28), createdAt: ago(28) }],
   },
   {
-    invoice: { id: 'inv-06', clientId: 'fc-centro-medico-aurora', projectId: null, description: 'Relatórios automáticos por email', totalAmount: 3000, discountAmount: 0, discountCodeId: null, finalAmount: 3000, status: 'pendente', dueDate: ahead(15), paymentType: 'parcelado', createdAt: ago(10), updatedAt: ago(10) },
+    invoice: { id: 'inv-06', clientId: 'fc-centro-medico-aurora', projectId: null, description: 'Relatórios automáticos por email', totalAmount: 3000, discountAmount: 0, discountCodeId: null, finalAmount: 3000, status: 'pendente', dueDate: ahead(15), paymentType: 'parcelado', createdAt: ago(10), updatedAt: ago(10), autopayEnabled: false },
     installments: [
       { id: 'ins-06-1', invoiceId: 'inv-06', installmentNumber: 1, amount: 1000, dueDate: ago(5), status: 'pago', stripePaymentIntentId: null, createdAt: ago(10) },
       { id: 'ins-06-2', invoiceId: 'inv-06', installmentNumber: 2, amount: 1000, dueDate: ago(1), status: 'pago', stripePaymentIntentId: null, createdAt: ago(10) },
@@ -92,13 +92,13 @@ const seeds: InvoiceSeed[] = [
 
   // ─── Loja Ponto Verde ───────────────────────────────────────────────────
   {
-    invoice: { id: 'inv-07', clientId: 'fc-loja-ponto-verde', projectId: null, description: 'Loja online — configuração inicial', totalAmount: 1800, discountAmount: 0, discountCodeId: null, finalAmount: 1800, status: 'pendente', dueDate: ahead(5), paymentType: 'unico', createdAt: ago(3), updatedAt: ago(3) },
+    invoice: { id: 'inv-07', clientId: 'fc-loja-ponto-verde', projectId: null, description: 'Loja online — configuração inicial', totalAmount: 1800, discountAmount: 0, discountCodeId: null, finalAmount: 1800, status: 'pendente', dueDate: ahead(5), paymentType: 'unico', createdAt: ago(3), updatedAt: ago(3), autopayEnabled: false },
   },
   {
-    invoice: { id: 'inv-08', clientId: 'fc-loja-ponto-verde', projectId: null, description: 'Integração com meio de pagamento adicional', totalAmount: 900, discountAmount: 0, discountCodeId: null, finalAmount: 900, status: 'cancelado', dueDate: ago(20), paymentType: 'unico', createdAt: ago(35), updatedAt: ago(15) },
+    invoice: { id: 'inv-08', clientId: 'fc-loja-ponto-verde', projectId: null, description: 'Integração com meio de pagamento adicional', totalAmount: 900, discountAmount: 0, discountCodeId: null, finalAmount: 900, status: 'cancelado', dueDate: ago(20), paymentType: 'unico', createdAt: ago(35), updatedAt: ago(15), autopayEnabled: false },
   },
   {
-    invoice: { id: 'inv-09', clientId: 'fc-loja-ponto-verde', projectId: null, description: 'Catálogo de produtos — 2ª fase', totalAmount: 2400, discountAmount: 0, discountCodeId: null, finalAmount: 2400, status: 'pendente', dueDate: ahead(30), paymentType: 'parcelado', createdAt: ago(2), updatedAt: ago(2) },
+    invoice: { id: 'inv-09', clientId: 'fc-loja-ponto-verde', projectId: null, description: 'Catálogo de produtos — 2ª fase', totalAmount: 2400, discountAmount: 0, discountCodeId: null, finalAmount: 2400, status: 'pendente', dueDate: ahead(30), paymentType: 'parcelado', createdAt: ago(2), updatedAt: ago(2), autopayEnabled: false },
     installments: [
       { id: 'ins-09-1', invoiceId: 'inv-09', installmentNumber: 1, amount: 1200, dueDate: ahead(3), status: 'pendente', stripePaymentIntentId: null, createdAt: ago(2) },
       { id: 'ins-09-2', invoiceId: 'inv-09', installmentNumber: 2, amount: 1200, dueDate: ahead(33), status: 'pendente', stripePaymentIntentId: null, createdAt: ago(2) },
@@ -107,24 +107,24 @@ const seeds: InvoiceSeed[] = [
 
   // ─── Padaria Real (cliente mais fiel — nível platinum) ─────────────────
   {
-    invoice: { id: 'inv-10', clientId: 'fc-padaria-real', projectId: null, description: 'App de encomendas — desenvolvimento completo', totalAmount: 9000, discountAmount: 0, discountCodeId: null, finalAmount: 9000, status: 'pago', dueDate: ago(200), paymentType: 'unico', createdAt: ago(220), updatedAt: ago(198) },
+    invoice: { id: 'inv-10', clientId: 'fc-padaria-real', projectId: null, description: 'App de encomendas — desenvolvimento completo', totalAmount: 9000, discountAmount: 0, discountCodeId: null, finalAmount: 9000, status: 'pago', dueDate: ago(200), paymentType: 'unico', createdAt: ago(220), updatedAt: ago(198), autopayEnabled: false },
     payments: [{ id: 'pay-10', invoiceId: 'inv-10', installmentId: null, amount: 9000, status: 'sucesso', stripePaymentIntentId: null, stripeCheckoutSessionId: null, paymentMethod: 'transferencia', paidAt: ago(198), createdAt: ago(198) }],
   },
   {
-    invoice: { id: 'inv-11', clientId: 'fc-padaria-real', projectId: null, description: 'Programa de fidelização de clientes', totalAmount: 7500, discountAmount: 750, discountCodeId: 'disc-fidelidade10', finalAmount: 6750, status: 'pago', dueDate: ago(100), paymentType: 'unico', createdAt: ago(120), updatedAt: ago(97) },
+    invoice: { id: 'inv-11', clientId: 'fc-padaria-real', projectId: null, description: 'Programa de fidelização de clientes', totalAmount: 7500, discountAmount: 750, discountCodeId: 'disc-fidelidade10', finalAmount: 6750, status: 'pago', dueDate: ago(100), paymentType: 'unico', createdAt: ago(120), updatedAt: ago(97), autopayEnabled: false },
     payments: [{ id: 'pay-11', invoiceId: 'inv-11', installmentId: null, amount: 6750, status: 'sucesso', stripePaymentIntentId: null, stripeCheckoutSessionId: null, paymentMethod: 'cartao', paidAt: ago(97), createdAt: ago(97) }],
   },
   {
-    invoice: { id: 'inv-12', clientId: 'fc-padaria-real', projectId: null, description: 'Manutenção anual — renovação', totalAmount: 6500, discountAmount: 0, discountCodeId: null, finalAmount: 6500, status: 'pago', dueDate: ago(20), paymentType: 'unico', createdAt: ago(35), updatedAt: ago(18) },
+    invoice: { id: 'inv-12', clientId: 'fc-padaria-real', projectId: null, description: 'Manutenção anual — renovação', totalAmount: 6500, discountAmount: 0, discountCodeId: null, finalAmount: 6500, status: 'pago', dueDate: ago(20), paymentType: 'unico', createdAt: ago(35), updatedAt: ago(18), autopayEnabled: false },
     payments: [{ id: 'pay-12', invoiceId: 'inv-12', installmentId: null, amount: 6500, status: 'sucesso', stripePaymentIntentId: null, stripeCheckoutSessionId: null, paymentMethod: 'transferencia', paidAt: ago(18), createdAt: ago(18) }],
   },
 
   // ─── Imobiliária Costa Verde ────────────────────────────────────────────
   {
-    invoice: { id: 'inv-13', clientId: 'fc-imobiliaria-costa-verde', projectId: null, description: 'CRM de imóveis — licença anual', totalAmount: 4200, discountAmount: 0, discountCodeId: null, finalAmount: 4200, status: 'atrasado', dueDate: ago(15), paymentType: 'unico', createdAt: ago(30), updatedAt: ago(30) },
+    invoice: { id: 'inv-13', clientId: 'fc-imobiliaria-costa-verde', projectId: null, description: 'CRM de imóveis — licença anual', totalAmount: 4200, discountAmount: 0, discountCodeId: null, finalAmount: 4200, status: 'atrasado', dueDate: ago(15), paymentType: 'unico', createdAt: ago(30), updatedAt: ago(30), autopayEnabled: false },
   },
   {
-    invoice: { id: 'inv-14', clientId: 'fc-imobiliaria-costa-verde', projectId: null, description: 'Portal de propostas para clientes e proprietários', totalAmount: 4500, discountAmount: 0, discountCodeId: null, finalAmount: 4500, status: 'atrasado', dueDate: ago(5), paymentType: 'parcelado', createdAt: ago(60), updatedAt: ago(4) },
+    invoice: { id: 'inv-14', clientId: 'fc-imobiliaria-costa-verde', projectId: null, description: 'Portal de propostas para clientes e proprietários', totalAmount: 4500, discountAmount: 0, discountCodeId: null, finalAmount: 4500, status: 'atrasado', dueDate: ago(5), paymentType: 'parcelado', createdAt: ago(60), updatedAt: ago(4), autopayEnabled: false },
     installments: [
       { id: 'ins-14-1', invoiceId: 'inv-14', installmentNumber: 1, amount: 1500, dueDate: ago(35), status: 'pago', stripePaymentIntentId: null, createdAt: ago(60) },
       { id: 'ins-14-2', invoiceId: 'inv-14', installmentNumber: 2, amount: 1500, dueDate: ago(5), status: 'atrasado', stripePaymentIntentId: null, createdAt: ago(60) },
@@ -133,7 +133,7 @@ const seeds: InvoiceSeed[] = [
     payments: [{ id: 'pay-14-1', invoiceId: 'inv-14', installmentId: 'ins-14-1', amount: 1500, status: 'sucesso', stripePaymentIntentId: null, stripeCheckoutSessionId: null, paymentMethod: 'cartao', paidAt: ago(35), createdAt: ago(35) }],
   },
   {
-    invoice: { id: 'inv-15', clientId: 'fc-imobiliaria-costa-verde', projectId: null, description: 'Automação de email e WhatsApp — extensão', totalAmount: 800, discountAmount: 0, discountCodeId: null, finalAmount: 800, status: 'pendente', dueDate: ahead(12), paymentType: 'unico', createdAt: ago(1), updatedAt: ago(1) },
+    invoice: { id: 'inv-15', clientId: 'fc-imobiliaria-costa-verde', projectId: null, description: 'Automação de email e WhatsApp — extensão', totalAmount: 800, discountAmount: 0, discountCodeId: null, finalAmount: 800, status: 'pendente', dueDate: ahead(12), paymentType: 'unico', createdAt: ago(1), updatedAt: ago(1), autopayEnabled: false },
   },
 ]
 

@@ -2,13 +2,14 @@ import type { Metadata } from 'next'
 import Link from 'next/link'
 import { notFound } from 'next/navigation'
 import { z } from 'zod'
-import { ArrowLeft, CalendarClock, CheckCircle2, Receipt, XCircle } from 'lucide-react'
+import { ArrowLeft, CalendarClock, CheckCircle2, Receipt, ShieldCheck, XCircle } from 'lucide-react'
+import { AutopayToggle } from '@/components/portal/autopay-widgets'
 import { InstallmentTable, InvoiceStatusBadge } from '@/components/portal/invoice-widgets'
 import { InstallmentPlanButton, PayButton } from '@/components/portal/payment-modals'
 import { PaymentProgressBar } from '@/components/portal/payment-progress'
 import { Button } from '@/components/ui/button'
 import { formatDate, formatEUR, paymentTypeLabels } from '@/lib/finance/labels'
-import { getMyInvoice } from '@/lib/finance/queries'
+import { getMyAutopayMandate, getMyInvoice } from '@/lib/finance/queries'
 import { paymentProgress } from '@/lib/finance/progress'
 
 export const metadata: Metadata = { title: 'Fatura' }
@@ -17,7 +18,7 @@ export default async function PortalInvoicePage({ params, searchParams }: { para
   const [{ id }, { pago, cancelado }] = await Promise.all([params, searchParams])
   if (!z.uuid().safeParse(id).success) notFound()
 
-  const invoice = await getMyInvoice(id)
+  const [invoice, autopay] = await Promise.all([getMyInvoice(id), getMyAutopayMandate()])
   if (!invoice) notFound()
 
   const canPay = invoice.status === 'pendente' || invoice.status === 'atrasado'
@@ -86,14 +87,23 @@ export default async function PortalInvoicePage({ params, searchParams }: { para
       )}
 
       {canPay && (
-        <section aria-label="Pagar" className="flex flex-wrap items-center gap-3 rounded-2xl border border-primary/30 bg-primary/5 p-5">
-          {invoice.paymentType === 'unico' ? (
-            <>
-              <PayButton invoice={invoice} />
-              <InstallmentPlanButton invoice={invoice} />
-            </>
+        <section aria-label="Pagar" className="grid gap-4 rounded-2xl border border-primary/30 bg-primary/5 p-5">
+          <div className="flex flex-wrap items-center gap-3">
+            {invoice.paymentType === 'unico' ? (
+              <>
+                <PayButton invoice={invoice} />
+                <InstallmentPlanButton invoice={invoice} hasAutopayMandate={Boolean(autopay)} />
+              </>
+            ) : (
+              <p className="text-sm text-muted-foreground">Pague cada parcela à medida que for vencendo, na lista acima.</p>
+            )}
+          </div>
+          {autopay ? (
+            <AutopayToggle invoiceId={invoice.id} enabled={invoice.autopayEnabled} />
           ) : (
-            <p className="text-sm text-muted-foreground">Pague cada parcela à medida que for vencendo, na lista acima.</p>
+            <Link href="/area-cliente/pagamentos/metodo" className="inline-flex w-fit items-center gap-1.5 text-sm font-medium text-primary hover:underline">
+              <ShieldCheck className="size-4" aria-hidden /> Configurar débito automático para não ter de voltar aqui
+            </Link>
           )}
         </section>
       )}

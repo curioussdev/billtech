@@ -6,6 +6,7 @@ import { ArrowLeft, FileSignature, Radar, Send, Trash2 } from 'lucide-react'
 import { deleteClientProject } from '@/actions/portal'
 import { Button } from '@/components/ui/button'
 import { ClientAccessForm } from '@/components/admin/editor/client-access-form'
+import { RegisterMandateDialog } from '@/components/admin/finance/register-mandate-dialog'
 import { ConfirmButton } from '@/components/admin/editor/confirm-button'
 import { ResolveChangeRequestButtons } from '@/components/admin/clientes/resolve-change-request-buttons'
 import { DueBadge, ProjectStageBadge, RequestStatusBadge } from '@/components/portal/badges'
@@ -30,7 +31,7 @@ export default async function AdminClientPage({ params }: { params: Promise<{ id
   const { data: client } = await supabase.from('profiles').select('id, email, full_name, company, created_at, role, nif').eq('id', id).single()
   if (!client) notFound()
 
-  const [{ solutions }, { data: assigned }, allProjects, allRequests, { data: changeRequests }, allSites, { data: contracts }] = await Promise.all([
+  const [{ solutions }, { data: assigned }, allProjects, allRequests, { data: changeRequests }, allSites, { data: contracts }, { data: autopayMandate }] = await Promise.all([
     getSiteContent(),
     supabase.from('client_solutions').select('solution_id').eq('user_id', id),
     getProjects(),
@@ -38,6 +39,7 @@ export default async function AdminClientPage({ params }: { params: Promise<{ id
     supabase.from('profile_change_requests').select('id, field, current_value, requested_value, reason, created_at').eq('client_id', id).eq('status', 'pendente').order('created_at', { ascending: false }),
     listExternalSites(),
     supabase.from('contracts').select('project_id, sent_at').eq('client_id', id),
+    supabase.from('autopay_mandates').select('payment_method_type').eq('client_id', id).eq('status', 'ativo').maybeSingle(),
   ])
   const projects = allProjects.filter((p) => p.client_id === id)
   const requests = allRequests.filter((r) => r.client_id === id)
@@ -56,9 +58,18 @@ export default async function AdminClientPage({ params }: { params: Promise<{ id
           {client.email}
           {client.company ? ` · ${client.company}` : ''} · registado em {formatDate(client.created_at)}
         </p>
-        <Button render={<Link href={`/admin/comunicacoes/nova?cliente=${id}`} />} nativeButton={false} variant="outline" size="sm" className="mt-4">
-          <Send aria-hidden /> Enviar mensagem a este cliente
-        </Button>
+        <div className="mt-4 flex flex-wrap items-center gap-3">
+          <Button render={<Link href={`/admin/comunicacoes/nova?cliente=${id}`} />} nativeButton={false} variant="outline" size="sm">
+            <Send aria-hidden /> Enviar mensagem a este cliente
+          </Button>
+          {autopayMandate ? (
+            <Button render={<Link href="/admin/finance/pagamentos" />} nativeButton={false} variant="outline" size="sm">
+              Débito automático ativo ({autopayMandate.payment_method_type === 'card' ? 'cartão' : 'IBAN'})
+            </Button>
+          ) : (
+            <RegisterMandateDialog clients={[{ id, name: client.full_name || client.email }]} defaultClientId={id} triggerLabel="Configurar débito automático" />
+          )}
+        </div>
       </div>
 
       <section aria-labelledby="projetos" className="grid gap-4">

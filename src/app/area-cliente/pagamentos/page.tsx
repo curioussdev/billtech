@@ -1,5 +1,8 @@
 import type { Metadata } from 'next'
+import Link from 'next/link'
+import { ShieldCheck } from 'lucide-react'
 import { InvoiceListItem } from '@/components/portal/invoice-widgets'
+import { Button } from '@/components/ui/button'
 import { getMyInvoices } from '@/lib/finance/queries'
 
 export const metadata: Metadata = { title: 'Pagamentos e Faturas' }
@@ -11,9 +14,14 @@ export default async function PortalInvoicesPage() {
 
   return (
     <div className="grid gap-8">
-      <header>
-        <h1 className="text-3xl font-black tracking-tight">Pagamentos e Faturas</h1>
-        <p className="mt-2 text-muted-foreground">Faturas em aberto, parcelas e pagamentos já feitos — incluindo os feitos fora da plataforma — tudo num só lugar, sem trocar emails.</p>
+      <header className="flex flex-wrap items-start justify-between gap-3">
+        <div>
+          <h1 className="text-3xl font-black tracking-tight">Pagamentos e Faturas</h1>
+          <p className="mt-2 text-muted-foreground">Faturas em aberto, parcelas e pagamentos já feitos — incluindo os feitos fora da plataforma — tudo num só lugar, sem trocar emails.</p>
+        </div>
+        <Button render={<Link href="/area-cliente/pagamentos/metodo" />} nativeButton={false} variant="outline" size="sm">
+          <ShieldCheck className="size-4" aria-hidden /> Débito automático
+        </Button>
       </header>
 
       <section aria-labelledby="faturas-abertas" className="grid gap-4">

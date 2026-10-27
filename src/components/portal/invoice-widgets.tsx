@@ -2,10 +2,10 @@ import Link from 'next/link'
 import { CalendarClock } from 'lucide-react'
 import { PayButton } from '@/components/portal/payment-modals'
 import { PaymentProgressBar } from '@/components/portal/payment-progress'
-import { formatDate, formatEUR, installmentStatusLabels, invoiceStatusLabels } from '@/lib/finance/labels'
+import { formatDate, formatEUR, installmentStatusLabels, invoiceStatusLabels, paymentStatusLabels } from '@/lib/finance/labels'
 import { paymentProgress } from '@/lib/finance/progress'
 import { cn } from '@/lib/utils'
-import type { Installment, InstallmentStatus, InvoiceStatus, InvoiceWithDetails } from '@/types/finance'
+import type { Installment, InstallmentStatus, InvoiceStatus, InvoiceWithDetails, PaymentStatus } from '@/types/finance'
 
 const pill = 'inline-flex items-center gap-1.5 whitespace-nowrap rounded-full px-2.5 py-0.5 text-xs font-semibold'
 
@@ -28,6 +28,17 @@ const installmentStatusStyles: Record<InstallmentStatus, string> = {
 
 export function InstallmentStatusBadge({ status, className }: { status: InstallmentStatus; className?: string }) {
   return <span className={cn(pill, installmentStatusStyles[status], className)}>{installmentStatusLabels[status]}</span>
+}
+
+const paymentStatusStyles: Record<PaymentStatus, string> = {
+  pendente: 'bg-sky-500/15 text-sky-800 dark:text-sky-300',
+  sucesso: 'bg-emerald-500/15 text-emerald-800 dark:text-emerald-300',
+  falhou: 'bg-red-500/15 text-red-800 dark:text-red-300',
+  reembolsado: 'bg-muted text-muted-foreground',
+}
+
+export function PaymentStatusBadge({ status, className }: { status: PaymentStatus; className?: string }) {
+  return <span className={cn(pill, paymentStatusStyles[status], className)}>{paymentStatusLabels[status]}</span>
 }
 
 /** Linha de fatura numa lista (dashboard ou página de pagamentos) — liga sempre ao detalhe. */

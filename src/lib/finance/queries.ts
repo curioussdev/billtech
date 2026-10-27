@@ -1,7 +1,8 @@
 import 'server-only'
-import { type InstallmentRow, type InvoiceRow, type LoyaltyRow, type PaymentRow, mapInstallment, mapInvoice, mapLoyalty, mapPayment } from '@/lib/finance/mappers'
+import { type AutopayMandateRow, type InstallmentRow, type InvoiceRow, type LoyaltyRow, type PaymentRow, mapAutopayMandate, mapInstallment, mapInvoice, mapLoyalty, mapPayment } from '@/lib/finance/mappers'
+import { getStripeClient, isStripeConfigured } from '@/lib/stripe/config'
 import { createClient } from '@/lib/supabase/server'
-import type { ClientLoyalty, Invoice, InvoiceWithDetails } from '@/types/finance'
+import type { AutopayMandate, ClientLoyalty, Invoice, InvoiceWithDetails } from '@/types/finance'
 
 /**
  * Leitura do módulo financeiro, do lado do cliente (área de cliente). Usa sempre o cliente com
@@ -63,4 +64,30 @@ export async function getMyLoyalty(): Promise<ClientLoyalty | null> {
   const supabase = await createClient()
   const { data } = await supabase.from('client_loyalty').select('*').maybeSingle()
   return data ? mapLoyalty(data as LoyaltyRow) : null
+}
+
+export type AutopayDisplay = { mandate: AutopayMandate; label: string }
+
+/**
+ * O método de débito automático ativo do cliente (se tiver), com uma etiqueta amigável para mostrar
+ * (ex. "Cartão •••• 4242" ou "Débito direto •••• PT50"). A etiqueta vem sempre em direto da Stripe
+ * (`paymentMethods.retrieve`) — a BillTech nunca guarda número de cartão nem IBAN, só a referência.
+ */
+export async function getMyAutopayMandate(): Promise<AutopayDisplay | null> {
+  const supabase = await createClient()
+  const { data } = await supabase.from('autopay_mandates').select('*').eq('status', 'ativo').maybeSingle()
+  if (!data) return null
+  const mandate = mapAutopayMandate(data as AutopayMandateRow)
+
+  let label = mandate.methodType === 'card' ? 'Cartão' : 'Débito direto (IBAN)'
+  if (isStripeConfigured) {
+    try {
+      const pm = await getStripeClient().paymentMethods.retrieve(mandate.stripePaymentMethodId)
+      if (pm.card) label = `Cartão •••• ${pm.card.last4}`
+      else if (pm.sepa_debit) label = `Débito direto •••• ${pm.sepa_debit.last4}`
+    } catch (error) {
+      console.error('[finance] leitura do método de pagamento na Stripe falhou:', error)
+    }
+  }
+  return { mandate, label }
 }

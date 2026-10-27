@@ -65,7 +65,7 @@ export default async function EditDealDeliveryPage({ params }: { params: Promise
                 )}
               </>
             ) : project.clientId ? (
-              <SetPaymentPlanForm leadId={project.id} />
+              <SetPaymentPlanForm leadId={project.id} totalAmount={project.value} />
             ) : (
               <p className="text-xs text-amber-700 dark:text-amber-400">Associe este negócio a uma conta de cliente no Pipeline para poder definir a forma de pagamento.</p>
             )}

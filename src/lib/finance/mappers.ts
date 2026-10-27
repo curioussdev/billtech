@@ -1,4 +1,4 @@
-import type { ClientLoyalty, Installment, Invoice, Payment } from '@/types/finance'
+import type { AutopayMandate, ClientLoyalty, Installment, Invoice, Payment } from '@/types/finance'
 
 /** Conversão snake_case (linhas do Postgres) → camelCase (tipos da app) — partilhado entre as
  * leituras do lado do cliente (`queries.ts`) e do lado do admin (`admin-queries.ts`). */
@@ -17,6 +17,7 @@ export type InvoiceRow = {
   payment_type: Invoice['paymentType']
   created_at: string
   updated_at: string
+  autopay_enabled: boolean
 }
 
 export type InstallmentRow = {
@@ -47,6 +48,17 @@ export type PaymentRow = {
 
 export type LoyaltyRow = { client_id: string; loyalty_points: number; loyalty_tier: ClientLoyalty['loyaltyTier']; total_spent: number; updated_at: string }
 
+export type AutopayMandateRow = {
+  id: string
+  client_id: string
+  stripe_payment_method_id: string
+  payment_method_type: AutopayMandate['methodType']
+  stripe_setup_intent_id: string | null
+  status: AutopayMandate['status']
+  created_at: string
+  revoked_at: string | null
+}
+
 export const mapInvoice = (r: InvoiceRow): Invoice => ({
   id: r.id,
   clientId: r.client_id,
@@ -61,6 +73,7 @@ export const mapInvoice = (r: InvoiceRow): Invoice => ({
   paymentType: r.payment_type,
   createdAt: r.created_at,
   updatedAt: r.updated_at,
+  autopayEnabled: r.autopay_enabled,
 })
 
 export const mapInstallment = (r: InstallmentRow): Installment => ({
@@ -90,3 +103,14 @@ export const mapPayment = (r: PaymentRow): Payment => ({
 })
 
 export const mapLoyalty = (r: LoyaltyRow): ClientLoyalty => ({ clientId: r.client_id, loyaltyPoints: r.loyalty_points, loyaltyTier: r.loyalty_tier, totalSpent: r.total_spent, updatedAt: r.updated_at })
+
+export const mapAutopayMandate = (r: AutopayMandateRow): AutopayMandate => ({
+  id: r.id,
+  clientId: r.client_id,
+  stripePaymentMethodId: r.stripe_payment_method_id,
+  methodType: r.payment_method_type,
+  stripeSetupIntentId: r.stripe_setup_intent_id,
+  status: r.status,
+  createdAt: r.created_at,
+  revokedAt: r.revoked_at,
+})

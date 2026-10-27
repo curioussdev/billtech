@@ -2,6 +2,7 @@
 
 import { useState } from 'react'
 import { markDealWon } from '@/actions/pipeline'
+import { InstallmentSimulator } from '@/components/shared/installment-simulator'
 import { Button } from '@/components/ui/button'
 import { Dialog, DialogContent, DialogDescription, DialogFooter, DialogHeader, DialogTitle } from '@/components/ui/dialog'
 import { Input } from '@/components/ui/input'
@@ -37,7 +38,7 @@ export function WinDealDialog({
   const [projectType, setProjectType] = useState<DealProjectType>(DEAL_PROJECT_TYPES[0])
   const [value, setValue] = useState(String(defaultValue))
   const [planMode, setPlanMode] = useState<'nenhum' | PaymentType>('nenhum')
-  const [installments, setInstallments] = useState('3')
+  const [installments, setInstallments] = useState(3)
   const [dueDate, setDueDate] = useState(defaultDueDate)
   const [pending, setPending] = useState(false)
   const [error, setError] = useState<string | null>(null)
@@ -53,7 +54,7 @@ export function WinDealDialog({
       projectName,
       projectType,
       value: parsedValue,
-      ...(planMode !== 'nenhum' ? { paymentType: planMode, dueDate, ...(planMode === 'parcelado' ? { installments: Number(installments) } : {}) } : {}),
+      ...(planMode !== 'nenhum' ? { paymentType: planMode, dueDate, ...(planMode === 'parcelado' ? { installments } : {}) } : {}),
     })
     setPending(false)
     if (!result.ok) return setError(result.message)
@@ -96,17 +97,14 @@ export function WinDealDialog({
               <option value="parcelado">Parcelado</option>
             </select>
             {planMode !== 'nenhum' && (
-              <div className="mt-2 grid gap-3 sm:grid-cols-2">
-                {planMode === 'parcelado' && (
-                  <div className="grid gap-1">
-                    <Label htmlFor="win-installments" className="text-xs">Nº de parcelas</Label>
-                    <Input id="win-installments" type="number" min={2} max={12} value={installments} onChange={(e) => setInstallments(e.target.value)} className="h-9 text-sm" />
-                  </div>
-                )}
-                <div className="grid gap-1">
+              <div className="mt-2 grid gap-3">
+                <div className="grid gap-1 sm:max-w-xs">
                   <Label htmlFor="win-due-date" className="text-xs">{planMode === 'parcelado' ? '1ª parcela vence em' : 'Vencimento'}</Label>
                   <Input id="win-due-date" type="date" value={dueDate} onChange={(e) => setDueDate(e.target.value)} className="h-9 text-sm" />
                 </div>
+                {planMode === 'parcelado' && (
+                  <InstallmentSimulator totalAmount={Number(value) || 0} dueDateBase={dueDate} months={installments} onMonthsChange={setInstallments} idPrefix="win-deal" />
+                )}
               </div>
             )}
             <p className="text-xs text-muted-foreground">

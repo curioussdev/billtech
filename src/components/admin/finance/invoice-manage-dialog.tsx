@@ -4,6 +4,7 @@ import { useState } from 'react'
 import { useRouter } from 'next/navigation'
 import { CalendarClock, CheckCircle2, Layers, Loader2, Percent } from 'lucide-react'
 import { applyDiscountToInvoice, convertToInstallments, extendDueDate, markInvoicePaidExternally, type FinanceResult } from '@/actions/payments'
+import { InstallmentSimulator } from '@/components/shared/installment-simulator'
 import { PaymentProgressBar } from '@/components/portal/payment-progress'
 import { Button } from '@/components/ui/button'
 import { Dialog, DialogContent, DialogDescription, DialogFooter, DialogHeader, DialogTitle } from '@/components/ui/dialog'
@@ -113,7 +114,7 @@ function DueDateSection({ invoice, onSuccess }: { invoice: AdminInvoice; onSucce
 }
 
 function InstallmentsSection({ invoice, onSuccess }: { invoice: AdminInvoice; onSuccess: () => void }) {
-  const [count, setCount] = useState('3')
+  const [count, setCount] = useState(3)
 
   return (
     <ActionSection
@@ -121,18 +122,12 @@ function InstallmentsSection({ invoice, onSuccess }: { invoice: AdminInvoice; on
       icon={<Layers className="size-4 text-primary" aria-hidden />}
       buttonLabel="Converter"
       onSubmit={async () => {
-        const result = await convertToInstallments({ invoiceId: invoice.id, numberOfInstallments: Number(count) })
+        const result = await convertToInstallments({ invoiceId: invoice.id, numberOfInstallments: count })
         if (result.ok) onSuccess()
         return result
       }}
     >
-      <div className="grid max-w-40 gap-1">
-        <Label htmlFor={`count-${invoice.id}`} className="text-xs">Número de parcelas</Label>
-        <Input id={`count-${invoice.id}`} type="number" min={2} max={12} value={count} onChange={(e) => setCount(e.target.value)} className={inputClass} />
-      </div>
-      <p className="text-xs text-muted-foreground">
-        {count && Number(count) >= 2 ? `${count}x de ${formatEUR(invoice.finalAmount / Number(count))} (aprox.)` : null}
-      </p>
+      <InstallmentSimulator totalAmount={invoice.finalAmount} dueDateBase={invoice.dueDate} months={count} onMonthsChange={setCount} idPrefix={`convert-${invoice.id}`} />
     </ActionSection>
   )
 }

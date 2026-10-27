@@ -203,20 +203,24 @@ export async function convertToInstallments(input: unknown): Promise<FinanceResu
   return { ok: true }
 }
 
-const SELF_SERVICE_INSTALLMENTS = 3
-const requestPlanSchema = z.object({ invoiceId: z.uuid() })
+const requestPlanSchema = z.object({
+  invoiceId: z.uuid(),
+  numberOfInstallments: z.coerce.number().int().min(2, 'Mínimo de 2 prestações.').max(12, 'Máximo de 12 prestações.'),
+  /** Liga o débito automático à mesma confirmação — exige que o cliente já tenha um mandato ativo. */
+  enableAutopay: z.coerce.boolean().optional().default(false),
+})
 
 /**
- * O próprio cliente pede para parcelar em 3x sem juros — sem enviar email, sem esperar pela equipa
- * (é essa a fricção que o botão "Parcelar em 3x" no portal existe para remover). Diferente de
- * `convertToInstallments`: aqui o número de parcelas é sempre 3 (a oferta que o negócio já decidiu
- * dar), não um valor livre — por isso pode ser self-service em vez de exigir `requireAdmin`. Escreve
- * pela mesma fórmula de `buildInstallmentRows`, fica auditado, e é sempre revertível pelo admin.
+ * O próprio cliente pede para parcelar — sem enviar email, sem esperar pela equipa (é essa a fricção
+ * que o simulador no portal existe para remover). Diferente de `convertToInstallments` só no facto de
+ * não exigir `requireAdmin` (o cliente só pode fazer isto à sua própria fatura, nunca à de outro).
+ * Escreve pela mesma fórmula de `buildInstallmentRows`, fica auditado, e é sempre revertível pelo
+ * admin.
  */
 export async function requestInstallmentPlan(input: unknown): Promise<FinanceResult> {
   const profile = await requireUser()
   const parsed = requestPlanSchema.safeParse(input)
-  if (!parsed.success) return { ok: false, message: 'Pedido inválido.' }
+  if (!parsed.success) return { ok: false, message: parsed.error.issues[0]?.message ?? 'Dados inválidos.' }
 
   const db = createAdminClient()
   const { data: invoice } = await db.from('invoices').select('*').eq('id', parsed.data.invoiceId).eq('client_id', profile.id).maybeSingle()
@@ -224,17 +228,26 @@ export async function requestInstallmentPlan(input: unknown): Promise<FinanceRes
   if (invoice.payment_type === 'parcelado') return { ok: false, message: 'Esta fatura já está parcelada.' }
   if (invoice.status !== 'pendente') return { ok: false, message: 'Só é possível parcelar faturas pendentes.' }
 
-  const rows = buildInstallmentRows(invoice.final_amount, SELF_SERVICE_INSTALLMENTS, invoice.due_date).map((r) => ({ ...r, invoice_id: invoice.id }))
+  if (parsed.data.enableAutopay) {
+    const { data: mandate } = await db.from('autopay_mandates').select('id').eq('client_id', profile.id).eq('status', 'ativo').maybeSingle()
+    if (!mandate) return { ok: false, message: 'Configure primeiro um método de débito automático.' }
+  }
+
+  const n = parsed.data.numberOfInstallments
+  const rows = buildInstallmentRows(invoice.final_amount, n, invoice.due_date).map((r) => ({ ...r, invoice_id: invoice.id }))
   const { error: insertError } = await db.from('installments').insert(rows)
   if (insertError) return { ok: false, message: 'Não foi possível criar o parcelamento.' }
-  await db.from('invoices').update({ payment_type: 'parcelado', updated_at: new Date().toISOString() }).eq('id', invoice.id)
+  await db
+    .from('invoices')
+    .update({ payment_type: 'parcelado', updated_at: new Date().toISOString(), ...(parsed.data.enableAutopay ? { autopay_enabled: true } : {}) })
+    .eq('id', invoice.id)
 
   await logAudit({
     admin: { id: profile.id, email: profile.email },
     action: 'CONVERT_TO_INSTALLMENTS',
     resource: 'financeiro',
     targetId: invoice.id,
-    details: { numberOfInstallments: SELF_SERVICE_INSTALLMENTS, selfService: true },
+    details: { numberOfInstallments: n, selfService: true, autopayEnabled: parsed.data.enableAutopay },
   })
   revalidatePath('/area-cliente', 'layout')
   return { ok: true }

@@ -58,6 +58,26 @@ export interface Invoice {
   paymentType: PaymentType
   createdAt: string
   updatedAt: string
+  /** Cliente ativou débito automático para esta fatura (exige um mandato ativo em `autopay_mandates`). */
+  autopayEnabled: boolean
+}
+
+export const AUTOPAY_METHOD_TYPES = ['card', 'sepa_debit'] as const
+export type AutopayMethodType = (typeof AUTOPAY_METHOD_TYPES)[number]
+
+export const AUTOPAY_MANDATE_STATUSES = ['ativo', 'revogado'] as const
+export type AutopayMandateStatus = (typeof AUTOPAY_MANDATE_STATUSES)[number]
+
+/** Autorização do cliente para a Stripe cobrar sem ele estar presente — cartão guardado ou débito direto SEPA (IBAN). */
+export interface AutopayMandate {
+  id: string
+  clientId: string
+  stripePaymentMethodId: string
+  methodType: AutopayMethodType
+  stripeSetupIntentId: string | null
+  status: AutopayMandateStatus
+  createdAt: string
+  revokedAt: string | null
 }
 
 export interface Installment {

@@ -3,10 +3,10 @@
 import { useState } from 'react'
 import { CreditCard, Layers, Loader2 } from 'lucide-react'
 import { createCheckoutSession, requestInstallmentPlan } from '@/actions/payments'
+import { InstallmentSimulator } from '@/components/shared/installment-simulator'
 import { Button } from '@/components/ui/button'
 import { Dialog, DialogContent, DialogDescription, DialogFooter, DialogHeader, DialogTitle } from '@/components/ui/dialog'
-import { buildInstallmentRows } from '@/lib/finance/installments'
-import { formatDate, formatEUR } from '@/lib/finance/labels'
+import { formatEUR } from '@/lib/finance/labels'
 import type { Installment, InvoiceWithDetails } from '@/types/finance'
 
 /**
@@ -76,18 +76,19 @@ export function PayButton({ invoice, installment, variant = 'default' }: { invoi
   )
 }
 
-/** "Parcelar em 3x sem juros" — self-service, sempre 3 parcelas (a oferta já decidida pelo negócio). */
-export function InstallmentPlanButton({ invoice }: { invoice: InvoiceWithDetails }) {
+/** Simulador de prestações — o cliente escolhe o nº de meses (2–12), vê o valor por prestação ao vivo, e pode ligar logo o débito automático se já tiver um método guardado. */
+export function InstallmentPlanButton({ invoice, hasAutopayMandate = false }: { invoice: InvoiceWithDetails; hasAutopayMandate?: boolean }) {
   const [open, setOpen] = useState(false)
+  const [months, setMonths] = useState(3)
+  const [enableAutopay, setEnableAutopay] = useState(hasAutopayMandate)
   const [pending, setPending] = useState(false)
   const [error, setError] = useState<string | null>(null)
   const [done, setDone] = useState(false)
-  const preview = buildInstallmentRows(invoice.finalAmount, 3, invoice.dueDate)
 
   async function confirm() {
     setPending(true)
     setError(null)
-    const result = await requestInstallmentPlan({ invoiceId: invoice.id })
+    const result = await requestInstallmentPlan({ invoiceId: invoice.id, numberOfInstallments: months, enableAutopay: hasAutopayMandate && enableAutopay })
     setPending(false)
     if (!result.ok) return setError(result.message)
     setDone(true)
@@ -95,14 +96,8 @@ export function InstallmentPlanButton({ invoice }: { invoice: InvoiceWithDetails
 
   return (
     <>
-      <Button
-        type="button"
-        size="sm"
-        variant="outline"
-        onClick={() => setOpen(true)}
-        className="rounded-full"
-      >
-        <Layers aria-hidden /> Parcelar em 3x sem juros
+      <Button type="button" size="sm" variant="outline" onClick={() => setOpen(true)} className="rounded-full">
+        <Layers aria-hidden /> Pagar em prestações
       </Button>
       <Dialog
         open={open}
@@ -113,25 +108,25 @@ export function InstallmentPlanButton({ invoice }: { invoice: InvoiceWithDetails
       >
         <DialogContent>
           <DialogHeader>
-            <DialogTitle>Parcelar em 3x sem juros</DialogTitle>
+            <DialogTitle>Pagar em prestações</DialogTitle>
             <DialogDescription>{invoice.description}</DialogDescription>
           </DialogHeader>
 
           {done ? (
             <p role="status" className="rounded-xl border border-emerald-500/40 bg-emerald-500/10 p-4 text-sm leading-6 text-emerald-900 dark:text-emerald-200">
-              Parcelamento confirmado. Pode pagar cada parcela à medida que for vencendo, aqui na página desta fatura.
+              Parcelamento confirmado{enableAutopay && hasAutopayMandate ? ', com cobrança automática ativa' : ''}. Pode acompanhar cada prestação aqui na página desta fatura.
             </p>
           ) : (
             <>
-              <ul className="grid gap-2">
-                {preview.map((p) => (
-                  <li key={p.installment_number} className="flex items-center justify-between gap-3 rounded-xl border border-border bg-muted/30 px-4 py-2.5 text-sm">
-                    <span className="font-medium">Parcela {p.installment_number}/3</span>
-                    <span className="text-muted-foreground">Vence {formatDate(p.due_date)}</span>
-                    <span className="tabular-nums font-semibold">{formatEUR(p.amount)}</span>
-                  </li>
-                ))}
-              </ul>
+              <InstallmentSimulator totalAmount={invoice.finalAmount} dueDateBase={invoice.dueDate} months={months} onMonthsChange={setMonths} idPrefix="client-plan" />
+              {hasAutopayMandate && (
+                <label className="flex cursor-pointer items-start gap-2 rounded-xl border border-border bg-muted/20 p-3 text-sm">
+                  <input type="checkbox" checked={enableAutopay} onChange={(e) => setEnableAutopay(e.target.checked)} className="mt-0.5 size-4 accent-[var(--primary)]" />
+                  <span>
+                    <strong>Cobrar automaticamente.</strong> <span className="text-muted-foreground">Usa o método de débito automático já configurado — não precisa de voltar aqui a cada vencimento.</span>
+                  </span>
+                </label>
+              )}
               {error && (
                 <p role="alert" className="text-sm font-medium text-destructive">
                   {error}
@@ -146,7 +141,7 @@ export function InstallmentPlanButton({ invoice }: { invoice: InvoiceWithDetails
             </Button>
             {!done && (
               <Button type="button" onClick={confirm} disabled={pending} className="rounded-xl">
-                {pending ? <Loader2 className="animate-spin" aria-hidden /> : <Layers aria-hidden />} Confirmar Parcelamento
+                {pending ? <Loader2 className="animate-spin" aria-hidden /> : <Layers aria-hidden />} Seguir com este plano
               </Button>
             )}
           </DialogFooter>

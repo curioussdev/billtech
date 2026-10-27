@@ -30,12 +30,14 @@ function looksLikeSecretKey(key: string): boolean {
 export const isStripeConfigured = looksLikeSecretKey(stripeSecretKey)
 
 /**
- * Métodos de pagamento aceites (decidido: cartão, MB WAY e Multibanco — os três relevantes para
- * clientes em Portugal). O Multibanco é assíncrono: a Stripe só confirma o pagamento horas depois
- * (o cliente paga numa referência, não no ecrã), por isso a fatura fica "pendente" até ao webhook
+ * Métodos de pagamento aceites no Checkout pontual (cartão, MB WAY, Multibanco e Klarna — os
+ * relevantes para clientes em Portugal). Multibanco e Klarna são assíncronos: a Stripe só confirma o
+ * pagamento mais tarde (Multibanco paga-se numa referência; a Klarna cobra o cliente a prestações do
+ * SEU lado, a BillTech recebe uma vez), por isso a fatura fica "pendente" até ao webhook
  * `checkout.session.async_payment_succeeded` confirmar — nunca se marca "pago" à saída do checkout.
+ * Confirmar no dashboard da Stripe que o Klarna está ativado para a conta antes de usar em produção.
  */
-export const STRIPE_PAYMENT_METHODS: Stripe.Checkout.SessionCreateParams.PaymentMethodType[] = ['card', 'mb_way', 'multibanco']
+export const STRIPE_PAYMENT_METHODS: Stripe.Checkout.SessionCreateParams.PaymentMethodType[] = ['card', 'mb_way', 'multibanco', 'klarna']
 
 let client: Stripe | null = null
 

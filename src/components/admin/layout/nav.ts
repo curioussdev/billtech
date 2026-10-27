@@ -1,5 +1,6 @@
 import {
   Boxes,
+  CreditCard,
   FileBarChart,
   FolderKanban,
   Gauge,
@@ -74,7 +75,8 @@ export const adminNav: NavGroup[] = [
       { title: 'Mensagens', href: '/admin/mensagens', icon: Inbox, alsoActiveOn: ['/admin/comunicacoes'] },
       { title: 'Pedidos de clientes', href: '/admin/pedidos', icon: LifeBuoy, badge: 'requests' },
       { title: 'Receita & Projetos', href: '/admin/revenue', icon: Wallet },
-      { title: 'Financeiro', href: '/admin/finance', icon: PiggyBank },
+      { title: 'Financeiro', href: '/admin/finance', icon: PiggyBank, exact: true },
+      { title: 'Pagamentos & Débito Automático', href: '/admin/finance/pagamentos', icon: CreditCard },
       { title: 'Pipeline de Vendas', href: '/admin/pipeline', icon: KanbanSquare },
       { title: 'Marketing', href: '/admin/marketing', icon: Megaphone },
       { title: 'Prospecção de Clientes', href: '/admin/prospecting', icon: Target },

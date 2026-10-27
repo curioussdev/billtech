@@ -1,4 +1,4 @@
-import type { InstallmentStatus, InvoiceStatus, LoyaltyTier, PaymentType } from '@/types/finance'
+import type { InstallmentStatus, InvoiceStatus, LoyaltyTier, PaymentStatus, PaymentType } from '@/types/finance'
 
 export const invoiceStatusLabels: Record<InvoiceStatus, string> = {
   pendente: 'Pendente',
@@ -14,6 +14,13 @@ export const installmentStatusLabels: Record<InstallmentStatus, string> = {
 }
 
 export const paymentTypeLabels: Record<PaymentType, string> = { unico: 'Pagamento único', parcelado: 'Parcelado' }
+
+export const paymentStatusLabels: Record<PaymentStatus, string> = {
+  pendente: 'A processar',
+  sucesso: 'Sucesso',
+  falhou: 'Falhou',
+  reembolsado: 'Reembolsado',
+}
 
 export const loyaltyTierLabels: Record<LoyaltyTier, string> = { bronze: 'Bronze', silver: 'Silver', gold: 'Gold', platinum: 'Platinum' }
 

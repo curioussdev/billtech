@@ -3,6 +3,7 @@
 import { useState } from 'react'
 import { useRouter } from 'next/navigation'
 import { setDealPaymentPlan } from '@/actions/pipeline'
+import { InstallmentSimulator } from '@/components/shared/installment-simulator'
 import { Button } from '@/components/ui/button'
 import { Input } from '@/components/ui/input'
 import { Label } from '@/components/ui/label'
@@ -16,10 +17,10 @@ const defaultDueDate = () => new Date(Date.now() + 30 * 86_400_000).toISOString(
  * antes desta funcionalidade existir, ou sem plano indicado na altura. Cria a fatura de imediato
  * (o cliente já está associado, senão esta forma nem aparece — ver `revenue/[id]/page.tsx`).
  */
-export function SetPaymentPlanForm({ leadId }: { leadId: string }) {
+export function SetPaymentPlanForm({ leadId, totalAmount }: { leadId: string; totalAmount: number }) {
   const router = useRouter()
   const [paymentType, setPaymentType] = useState<PaymentType>('unico')
-  const [installments, setInstallments] = useState('3')
+  const [installments, setInstallments] = useState(3)
   const [dueDate, setDueDate] = useState(defaultDueDate)
   const [pending, setPending] = useState(false)
   const [error, setError] = useState<string | null>(null)
@@ -28,7 +29,7 @@ export function SetPaymentPlanForm({ leadId }: { leadId: string }) {
     e.preventDefault()
     setPending(true)
     setError(null)
-    const result = await setDealPaymentPlan({ leadId, paymentType, dueDate, ...(paymentType === 'parcelado' ? { installments: Number(installments) } : {}) })
+    const result = await setDealPaymentPlan({ leadId, paymentType, dueDate, ...(paymentType === 'parcelado' ? { installments } : {}) })
     setPending(false)
     if (!result.ok) return setError(result.message)
     router.refresh()
@@ -45,17 +46,12 @@ export function SetPaymentPlanForm({ leadId }: { leadId: string }) {
             <option value="parcelado">Parcelado</option>
           </select>
         </div>
-        {paymentType === 'parcelado' && (
-          <div className="grid gap-1">
-            <Label htmlFor={`plan-installments-${leadId}`} className="text-xs">Nº de parcelas</Label>
-            <Input id={`plan-installments-${leadId}`} type="number" min={2} max={12} value={installments} onChange={(e) => setInstallments(e.target.value)} className="h-9 text-sm" />
-          </div>
-        )}
         <div className="grid gap-1">
           <Label htmlFor={`plan-due-${leadId}`} className="text-xs">{paymentType === 'parcelado' ? '1ª parcela vence em' : 'Vencimento'}</Label>
           <Input id={`plan-due-${leadId}`} type="date" value={dueDate} onChange={(e) => setDueDate(e.target.value)} className="h-9 text-sm" />
         </div>
       </div>
+      {paymentType === 'parcelado' && <InstallmentSimulator totalAmount={totalAmount} dueDateBase={dueDate} months={installments} onMonthsChange={setInstallments} idPrefix={`plan-${leadId}`} />}
       {error && (
         <p role="alert" className="text-xs font-medium text-destructive">
           {error}
