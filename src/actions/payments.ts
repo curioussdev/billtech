@@ -12,6 +12,7 @@ import { formatEUR } from '@/lib/finance/labels'
 import { recordPaymentForLoyalty, reverseLoyaltyForPayment, tierForSpend } from '@/lib/finance/loyalty'
 import { type InstallmentRow, type PaymentRow, mapInstallment, mapPayment } from '@/lib/finance/mappers'
 import { paymentProgress } from '@/lib/finance/progress'
+import { checkPaymentRateLimit, RATE_LIMIT_MESSAGE } from '@/lib/rate-limit'
 import { getStripeClient, isStripeConfigured, STRIPE_PAYMENT_METHODS } from '@/lib/stripe/config'
 import { createAdminClient } from '@/lib/supabase/server'
 import { EXPENSE_CATEGORIES } from '@/types/finance'
@@ -54,6 +55,8 @@ export async function createCheckoutSession(input: unknown): Promise<CheckoutSes
   if (!parsed.success) return { ok: false, message: 'Pedido inválido.' }
 
   const db = createAdminClient()
+  if (!(await checkPaymentRateLimit(db, profile.id, 'CREATE_CHECKOUT_SESSION', { max: 10, windowSeconds: 60 }))) return { ok: false, message: RATE_LIMIT_MESSAGE }
+
   const { data: invoice } = await db.from('invoices').select('*').eq('id', parsed.data.invoiceId).eq('client_id', profile.id).maybeSingle()
   if (!invoice) return { ok: false, message: 'Fatura não encontrada.' }
   if (invoice.status === 'pago' || invoice.status === 'cancelado') return { ok: false, message: 'Esta fatura já não aceita pagamento.' }

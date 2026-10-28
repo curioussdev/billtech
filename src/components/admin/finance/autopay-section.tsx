@@ -7,8 +7,7 @@ import { chargeInstallmentNow, sendAutopayPreNotice } from '@/actions/autopay'
 import { Input } from '@/components/ui/input'
 import { Button } from '@/components/ui/button'
 import { formatDate, formatEUR } from '@/lib/finance/labels'
-import type { AutopayDueItem, AutopayOverviewRow } from '@/lib/finance/autopay-queries'
-import type { AutopayMandate } from '@/types/finance'
+import type { AutopayDueItem, AutopayMandateSummary, AutopayOverviewRow } from '@/lib/finance/autopay-queries'
 
 function ChargeNowButton({ invoiceId, installmentId }: { invoiceId: string; installmentId: string | null }) {
   const router = useRouter()
@@ -68,7 +67,7 @@ function NotifyButton({ item }: { item: AutopayDueItem }) {
   )
 }
 
-function MandateHistory({ history }: { history: AutopayMandate[] }) {
+function MandateHistory({ history }: { history: AutopayMandateSummary[] }) {
   if (history.length <= 1) return null
   return (
     <details className="rounded-xl border border-border/60 bg-muted/10 text-sm">

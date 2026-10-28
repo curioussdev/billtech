@@ -4,11 +4,12 @@ import { revalidatePath } from 'next/cache'
 import { z } from 'zod'
 import { siteUrl } from '@/data/site'
 import { logAudit } from '@/lib/audit'
-import { requireAdmin, requireUser } from '@/lib/auth'
+import { FORBIDDEN_MESSAGE, requireAdmin, requireSuperAdminForAction, requireUser } from '@/lib/auth'
 import { sendEmail } from '@/lib/contact-delivery'
 import { emailLayout } from '@/lib/email-template'
 import { formatDate, formatEUR } from '@/lib/finance/labels'
 import { mapAutopayMandate, type AutopayMandateRow } from '@/lib/finance/mappers'
+import { checkPaymentRateLimit, RATE_LIMIT_MESSAGE } from '@/lib/rate-limit'
 import { getStripeClient, isStripeConfigured } from '@/lib/stripe/config'
 import { chargeInstallmentOffSession } from '@/lib/stripe/autopay'
 import { createAdminClient } from '@/lib/supabase/server'
@@ -74,6 +75,8 @@ export async function createAutopaySetupSession(input: unknown): Promise<Autopay
   const profile = await requireUser()
   const parsed = setupSchema.safeParse(input)
   if (!parsed.success) return { ok: false, message: 'Pedido inválido.' }
+  const db = createAdminClient()
+  if (!(await checkPaymentRateLimit(db, profile.id, 'CREATE_AUTOPAY_SETUP_SESSION', { max: 10, windowSeconds: 60 }))) return { ok: false, message: RATE_LIMIT_MESSAGE }
   return buildAutopaySetupSession(profile, parsed.data.idempotencyKey)
 }
 
@@ -131,6 +134,7 @@ export async function sendAutopaySetupEmail(input: unknown): Promise<AutopayResu
 export async function revokeAutopayMandate(): Promise<AutopayResult> {
   const profile = await requireUser()
   const db = createAdminClient()
+  if (!(await checkPaymentRateLimit(db, profile.id, 'REVOKE_AUTOPAY_MANDATE', { max: 10, windowSeconds: 60 }))) return { ok: false, message: RATE_LIMIT_MESSAGE }
 
   const { data: mandateRow } = await db.from('autopay_mandates').select('*').eq('client_id', profile.id).eq('status', 'ativo').maybeSingle()
   if (!mandateRow) return { ok: false, message: 'Não tem nenhum método de débito automático ativo.' }
@@ -189,7 +193,9 @@ const chargeNowSchema = z.object({ invoiceId: z.uuid(), installmentId: z.union([
  * mesmo dia nunca cobram duas vezes.
  */
 export async function chargeInstallmentNow(input: unknown): Promise<AutopayResult> {
-  const admin = await requireAdmin()
+  // Dispara uma cobrança a sério — mesmo nível de autorização de undoPayment/markInvoicePaidExternally.
+  const admin = await requireSuperAdminForAction({ action: 'TRIGGER_AUTOPAY_CHARGE', resource: 'financeiro' })
+  if (!admin) return { ok: false, message: FORBIDDEN_MESSAGE }
   const parsed = chargeNowSchema.safeParse(input)
   if (!parsed.success) return { ok: false, message: 'Pedido inválido.' }
   if (!isStripeConfigured) return { ok: false, message: 'A Stripe ainda não está configurada.' }
@@ -298,7 +304,10 @@ const createSepaSchema = z.object({
  * como o cliente autorizou, já que não foi ele a escrever isto na Stripe.
  */
 export async function createSepaMandateWithIban(input: unknown): Promise<AutopayResult> {
-  const admin = await requireAdmin()
+  // Cria um mandato vinculativo a partir de dados bancários escritos pelo admin, sem confirmação do
+  // cliente na própria Stripe — mesmo nível de autorização de undoPayment/chargeInstallmentNow.
+  const admin = await requireSuperAdminForAction({ action: 'CREATE_SEPA_MANDATE_OFFLINE', resource: 'financeiro' })
+  if (!admin) return { ok: false, message: FORBIDDEN_MESSAGE }
   const parsed = createSepaSchema.safeParse(input)
   if (!parsed.success) return { ok: false, message: parsed.error.issues[0]?.message ?? 'Dados inválidos.' }
   if (!isStripeConfigured) return { ok: false, message: 'A Stripe ainda não está configurada.' }

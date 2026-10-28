@@ -25,18 +25,36 @@ export interface AutopayFailure {
   createdAt: string
 }
 
+/**
+ * Só o que a UI do admin mostra — nunca o `AutopayMandate` completo. Este objeto é enviado ao
+ * browser como prop de um Client Component (`AutopaySection`), por isso fica de fora qualquer
+ * identificador Stripe (`stripePaymentMethodId`, `stripeSetupIntentId`): não são dados PCI, mas não
+ * há motivo para saírem da nossa BD para o inspect do browser quando a UI não os usa.
+ */
+export interface AutopayMandateSummary {
+  id: string
+  methodType: AutopayMandate['methodType']
+  status: AutopayMandate['status']
+  createdAt: string
+  revokedAt: string | null
+}
+
+function toSummary(m: AutopayMandate): AutopayMandateSummary {
+  return { id: m.id, methodType: m.methodType, status: m.status, createdAt: m.createdAt, revokedAt: m.revokedAt }
+}
+
 export interface AutopayOverviewRow {
   clientId: string
   clientName: string
   clientEmail: string
-  mandate: AutopayMandate
+  mandate: AutopayMandateSummary
   /** Todas as parcelas/faturas em aberto com autopay ativo, por vencimento — cada uma pode ser cobrada manualmente a qualquer momento, não só a mais próxima. */
   payable: AutopayDueItem[]
   /** Parcelas/faturas a vencer nos próximos dias (não hoje, não atrasadas — essas já estão em `nextDue`) — candidatas a um aviso prévio antes de serem cobradas. SEPA Direct Debit exige pré-aviso por lei; cartão não, mas avisar não faz mal. */
   upcomingNotices: AutopayDueItem[]
   recentFailures: AutopayFailure[]
   /** Todos os mandatos deste cliente, incluindo os já revogados antes do atual — mais recente primeiro, inclui `mandate`. Só consulta, sem ação associada. */
-  history: AutopayMandate[]
+  history: AutopayMandateSummary[]
 }
 
 const NOTICE_WINDOW_DAYS = 5
@@ -90,9 +108,9 @@ export async function listAutopayOverview(): Promise<AutopayOverviewRow[]> {
           createdAt: f.created_at as string,
         }))
 
-      const history = allMandates.filter((m) => m.clientId === mandate.clientId)
+      const history = allMandates.filter((m) => m.clientId === mandate.clientId).map(toSummary)
 
-      return { clientId: mandate.clientId, clientName: profile?.full_name || profile?.email || 'Cliente', clientEmail: profile?.email ?? '', mandate, payable: sorted, upcomingNotices, recentFailures, history }
+      return { clientId: mandate.clientId, clientName: profile?.full_name || profile?.email || 'Cliente', clientEmail: profile?.email ?? '', mandate: toSummary(mandate), payable: sorted, upcomingNotices, recentFailures, history }
     })
   } catch (error) {
     console.error('[finance] leitura de autopay_mandates falhou:', error)
