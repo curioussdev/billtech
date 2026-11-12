@@ -8,7 +8,7 @@ import type { PortalRequest, RequestStatus } from '@/types/portal'
 /** Adaptador: mantém a assinatura antiga (título, corpo, CTA) sobre o layout partilhado. */
 const layout = (title: string, bodyHtml: string, cta: { label: string; href: string }) => emailLayout({ title, bodyHtml, cta })
 
-const quote = (text: string) => `<blockquote style="margin:12px 0;padding:10px 14px;border-left:3px solid #0f6a70;background:#f6f8fa;white-space:pre-wrap">${escapeHtml(text)}</blockquote>`
+const quote = (text: string) => `<blockquote style="margin:12px 0;padding:10px 14px;border-left:3px solid #006e4f;background:#f6f8fa;white-space:pre-wrap">${escapeHtml(text)}</blockquote>`
 const meta = (r: PortalRequest) => `<p style="margin:0 0 8px;color:#4b5563;font-size:14px">${escapeHtml(requestTypeLabels[r.type])} · Prioridade ${escapeHtml(priorityLabels[r.priority])}</p>`
 
 // Nenhuma notificação pode impedir a ação principal: falhas só ficam em log.

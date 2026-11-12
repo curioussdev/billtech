@@ -8,6 +8,7 @@ import { PriorityBadge, RequestStatusBadge } from '@/components/portal/badges'
 import { ReplyForm } from '@/components/portal/forms'
 import { MessageThread } from '@/components/portal/message-thread'
 import { SatisfactionWidget } from '@/components/portal/satisfaction-widget'
+import { Surface } from '@/components/portal/surface'
 import { Button } from '@/components/ui/button'
 import { ConfirmButton } from '@/components/admin/editor/confirm-button'
 import { requireUser } from '@/lib/auth'
@@ -28,7 +29,7 @@ export default async function PortalRequestPage({ params, searchParams }: { para
   // Ler a conversa limpa o "por ler" do cliente
   if (request.client_unread) await markRequestRead(request.id, 'client')
 
-  const project = request.project_id ? await getProject(request.project_id) : null
+  const project = request.project_id ? await getProject(request.project_id, profile.id) : null
   const isOpen = OPEN_STATUSES.includes(request.status)
 
   return (
@@ -68,20 +69,20 @@ export default async function PortalRequestPage({ params, searchParams }: { para
         )}
       </header>
 
-      <section aria-label="Conversa" className="rounded-2xl border border-border bg-card p-5 sm:p-6">
+      <Surface as="section" aria-label="Conversa" className="p-5 sm:p-6">
         <MessageThread request={request} messages={messages} attachments={attachments} viewer="client" clientName={profile.full_name || profile.email} />
-      </section>
+      </Surface>
 
       {request.status === 'concluido' &&
         (request.satisfaction_rating ? (
-          <p className="flex items-center gap-2 rounded-2xl border border-border bg-card p-4 text-sm text-muted-foreground">
+          <Surface as="p" className="flex items-center gap-2 p-4 text-sm text-muted-foreground">
             <span className="flex items-center gap-0.5" aria-hidden>
               {[1, 2, 3, 4, 5].map((n) => (
                 <Star key={n} className={n <= request.satisfaction_rating! ? 'size-4 fill-amber-400 text-amber-400' : 'size-4 text-muted-foreground'} />
               ))}
             </span>
             A sua avaliação, obrigado.
-          </p>
+          </Surface>
         ) : (
           <SatisfactionWidget requestId={request.id} />
         ))}

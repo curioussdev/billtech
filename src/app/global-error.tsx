@@ -16,14 +16,14 @@ export default function GlobalError({ error, reset }: { error: Error & { digest?
 
   return (
     <html lang="pt-PT">
-      <body style={{ margin: 0, fontFamily: 'system-ui, -apple-system, sans-serif', background: '#0e1219', color: '#fafaf7', minHeight: '100vh', display: 'grid', placeItems: 'center', padding: '2rem' }}>
+      <body style={{ margin: 0, fontFamily: 'system-ui, -apple-system, sans-serif', background: '#000e0d', color: '#fafaf7', minHeight: '100vh', display: 'grid', placeItems: 'center', padding: '2rem' }}>
         <div style={{ maxWidth: 420, textAlign: 'center', display: 'grid', gap: '1rem' }}>
           <h1 style={{ fontSize: '1.75rem', fontWeight: 800, margin: 0 }}>A aplicação encontrou um erro grave</h1>
-          <p style={{ color: '#b4bcc8', margin: 0 }}>Já ficou registado. Tente recarregar a página — se persistir, contacte-nos.</p>
+          <p style={{ color: '#9aacaa', margin: 0 }}>Já ficou registado. Tente recarregar a página — se persistir, contacte-nos.</p>
           <button
             type="button"
             onClick={reset}
-            style={{ marginTop: '0.5rem', height: 44, padding: '0 1.5rem', borderRadius: 999, border: 'none', background: '#5fd3d0', color: '#0e1219', fontWeight: 700, cursor: 'pointer' }}
+            style={{ marginTop: '0.5rem', height: 44, padding: '0 1.5rem', borderRadius: 999, border: 'none', background: '#59d38c', color: '#05160d', fontWeight: 700, cursor: 'pointer' }}
           >
             Tentar novamente
           </button>

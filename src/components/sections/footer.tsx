@@ -3,6 +3,7 @@ import { Code2, ShieldCheck } from 'lucide-react'
 import { Reveal } from '@/components/motion/reveal'
 import { BrandName } from '@/components/brand-name'
 import { ManageCookiesLink } from '@/components/cookie-banner'
+import { FooterNav } from '@/components/marketing/footer-nav'
 import { SocialLinks } from '@/components/social-links'
 import type { SiteContent } from '@/lib/content/schema'
 
@@ -37,38 +38,19 @@ export function Footer({ general, socials }: { general: SiteContent['general']; 
             <SocialLinks items={socials.items} />
           </div>
 
-          <nav aria-label="Links rápidos">
-            <h2 className="text-xs font-bold uppercase tracking-widest text-muted-foreground">Links rápidos</h2>
-            <ul className="mt-4 grid gap-3 text-sm">
-              {quickLinks.map((link) => (
-                <li key={link.href}>
-                  <Link href={link.href} className="rounded-sm text-muted-foreground transition-colors hover:text-foreground">
-                    {link.label}
-                  </Link>
-                </li>
-              ))}
-            </ul>
-          </nav>
+          <FooterNav title="Links rápidos" links={quickLinks} />
 
-          <nav aria-label="Legal e segurança">
-            <h2 className="text-xs font-bold uppercase tracking-widest text-muted-foreground">Legal &amp; Segurança</h2>
-            <ul className="mt-4 grid gap-3 text-sm">
-              {legalLinks.map((link) => (
-                <li key={link.href}>
-                  <Link href={link.href} className="rounded-sm text-muted-foreground transition-colors hover:text-foreground">
-                    {link.label}
-                  </Link>
-                </li>
-              ))}
+          <div>
+            <FooterNav title={'Legal & Segurança'} links={legalLinks}>
               <li>
                 <ManageCookiesLink className="rounded-sm text-muted-foreground transition-colors hover:text-foreground" />
               </li>
-            </ul>
+            </FooterNav>
             <p className="mt-5 inline-flex items-center gap-2 rounded-full border border-border px-3 py-1.5 text-xs font-medium text-muted-foreground">
               <ShieldCheck className="size-4 shrink-0 text-primary" aria-hidden />
               Site seguro com encriptação SSL
             </p>
-          </nav>
+          </div>
         </div>
 
         <div className="mt-12 border-t border-border pt-6 text-sm text-muted-foreground">

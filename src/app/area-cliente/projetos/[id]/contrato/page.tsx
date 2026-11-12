@@ -5,8 +5,10 @@ import { z } from 'zod'
 import { ArrowLeft, FileSignature } from 'lucide-react'
 import { ContractDocument } from '@/components/contracts/contract-document'
 import { PrintButton } from '@/components/portal/print-button'
+import { Surface } from '@/components/portal/surface'
 import { Button } from '@/components/ui/button'
 import { requireUser } from '@/lib/auth'
+import { getProject } from '@/lib/portal/queries'
 import { createClient } from '@/lib/supabase/server'
 
 export const metadata: Metadata = { title: 'Contrato' }
@@ -15,6 +17,10 @@ export default async function ClientContractPage({ params }: { params: Promise<{
   const { id } = await params
   if (!z.uuid().safeParse(id).success) notFound()
   const profile = await requireUser()
+
+  // Confirma que o projeto é mesmo deste cliente antes de ler o contrato (contracts.project_id não é filtrável por client_id diretamente).
+  const project = await getProject(id, profile.id)
+  if (!project) notFound()
 
   const supabase = await createClient()
   const { data: contract } = await supabase.from('contracts').select('*').eq('project_id', id).maybeSingle()
@@ -26,16 +32,16 @@ export default async function ClientContractPage({ params }: { params: Promise<{
       </Link>
 
       {!contract ? (
-        <p className="flex items-center gap-2 rounded-2xl border border-dashed border-border bg-card p-8 text-muted-foreground">
+        <Surface tone="dashed" className="flex items-center gap-2 p-8 text-muted-foreground">
           <FileSignature className="size-5 shrink-0" aria-hidden /> Ainda não há nenhum contrato disponível para este projeto.
-        </p>
+        </Surface>
       ) : (
         <>
           <div className="flex items-center justify-between gap-3 print:hidden">
             <h1 className="text-2xl font-black tracking-tight">Contrato</h1>
             <PrintButton />
           </div>
-          <div className="rounded-2xl border border-border bg-card p-8 print:border-0 print:p-0">
+          <Surface className="p-8 print:border-0 print:p-0">
             <ContractDocument
               data={{
                 clientName: profile.full_name || profile.email,
@@ -50,7 +56,7 @@ export default async function ClientContractPage({ params }: { params: Promise<{
                 dueDate: contract.due_date,
               }}
             />
-          </div>
+          </Surface>
         </>
       )}
     </div>

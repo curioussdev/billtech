@@ -2,6 +2,7 @@ import type { Metadata } from 'next'
 import { ChangePasswordButton } from '@/components/portal/change-password-button'
 import { ProfileForm } from '@/components/portal/forms'
 import { SensitiveField } from '@/components/portal/sensitive-field'
+import { Surface } from '@/components/portal/surface'
 import { requireUser } from '@/lib/auth'
 import { createClient } from '@/lib/supabase/server'
 
@@ -25,7 +26,7 @@ export default async function PortalAccountPage() {
         <h1 className="text-3xl font-black tracking-tight">A minha conta</h1>
         <p className="mt-2 text-muted-foreground">Os seus dados de contacto na BillTech.</p>
       </header>
-      <div className="grid max-w-lg gap-5 rounded-2xl border border-border bg-card p-6 sm:p-8">
+      <Surface className="grid max-w-lg gap-5 p-6 sm:p-8">
         <ProfileForm fullName={profile.full_name} company={profile.company} />
         <SensitiveField field="email" currentValue={profile.email} pendingRequest={pendingEmail ? { requestedValue: pendingEmail.requested_value, createdAt: pendingEmail.created_at } : undefined} />
         <SensitiveField
@@ -34,12 +35,12 @@ export default async function PortalAccountPage() {
           allowFirstFill
           pendingRequest={pendingNif ? { requestedValue: pendingNif.requested_value, createdAt: pendingNif.created_at } : undefined}
         />
-      </div>
-      <div className="grid gap-3 rounded-2xl border border-border bg-card p-6 sm:p-8">
+      </Surface>
+      <Surface className="grid gap-3 p-6 sm:p-8">
         <h2 className="text-lg font-bold">Segurança</h2>
         <p className="text-sm text-muted-foreground">Por segurança, a alteração de password é sempre confirmada por email.</p>
         <ChangePasswordButton />
-      </div>
+      </Surface>
     </div>
   )
 }

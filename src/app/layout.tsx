@@ -4,6 +4,8 @@ import { MotionProvider } from '@/components/motion/motion-provider'
 import { ThemeProvider } from '@/components/theme-provider'
 import { siteLocale, siteUrl } from '@/data/site'
 import { getSiteContent } from '@/lib/content/get'
+import { buildThemeOverrideCss } from '@/lib/theme/css'
+import { getThemePalette } from '@/lib/theme/get'
 import './globals.css'
 
 const inter = Inter({ subsets: ['latin'], variable: '--font-inter', display: 'swap' })
@@ -44,16 +46,26 @@ export async function generateMetadata(): Promise<Metadata> {
 export const viewport: Viewport = {
   colorScheme: 'light dark',
   themeColor: [
-    { media: '(prefers-color-scheme: light)', color: '#fbfaf5' },
-    { media: '(prefers-color-scheme: dark)', color: '#0e1219' },
+    { media: '(prefers-color-scheme: light)', color: '#f2fdfb' },
+    { media: '(prefers-color-scheme: dark)', color: '#000e0d' },
   ],
 }
 
-export default function RootLayout({ children }: Readonly<{ children: React.ReactNode }>) {
+export default async function RootLayout({ children }: Readonly<{ children: React.ReactNode }>) {
+  // Nunca pode impedir a página de renderizar — uma falha aqui (Supabase em baixo, etc.) tem de cair
+  // graciosamente para "sem personalização", nunca para uma página em branco.
+  let themeCss = ''
+  try {
+    themeCss = buildThemeOverrideCss(await getThemePalette())
+  } catch (error) {
+    console.error('[theme] Falha a aplicar a paleta personalizada:', error)
+  }
+
   return (
     // suppressHydrationWarning: next-themes altera a classe do <html> antes da hidratação
     <html lang="pt-PT" className={inter.variable} suppressHydrationWarning>
       <body>
+        {themeCss && <style dangerouslySetInnerHTML={{ __html: themeCss }} />}
         <ThemeProvider>
           <MotionProvider>{children}</MotionProvider>
         </ThemeProvider>

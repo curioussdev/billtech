@@ -61,6 +61,7 @@ export const AUDIT_ACTIONS = [
   'SEND_AUTOPAY_NOTICE',
   'SEND_AUTOPAY_SETUP_LINK',
   'CREATE_SEPA_MANDATE_OFFLINE',
+  'UPDATE_THEME_PALETTE',
 ] as const
 export type AuditAction = (typeof AUDIT_ACTIONS)[number]
 

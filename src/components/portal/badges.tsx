@@ -21,7 +21,7 @@ const dueHints: Record<'atrasado' | 'esta_semana', string> = {
   esta_semana: 'A data de entrega prevista é nos próximos 7 dias.',
 }
 
-const pill = 'inline-flex items-center gap-1.5 whitespace-nowrap rounded-full px-2.5 py-0.5 text-xs font-semibold'
+export const pill = 'inline-flex items-center gap-1.5 whitespace-nowrap rounded-full px-2.5 py-0.5 text-xs font-semibold'
 
 const statusStyles: Record<RequestStatus, string> = {
   aberto: 'bg-sky-500/15 text-sky-800 dark:text-sky-300',

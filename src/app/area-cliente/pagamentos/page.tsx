@@ -1,14 +1,18 @@
 import type { Metadata } from 'next'
 import Link from 'next/link'
 import { ShieldCheck } from 'lucide-react'
+import { Reveal } from '@/components/motion/reveal'
 import { InvoiceListItem } from '@/components/portal/invoice-widgets'
+import { Surface } from '@/components/portal/surface'
 import { Button } from '@/components/ui/button'
+import { requireUser } from '@/lib/auth'
 import { getMyInvoices } from '@/lib/finance/queries'
 
 export const metadata: Metadata = { title: 'Pagamentos e Faturas' }
 
 export default async function PortalInvoicesPage() {
-  const invoices = await getMyInvoices()
+  const profile = await requireUser()
+  const invoices = await getMyInvoices(profile.id)
   const open = invoices.filter((i) => i.status === 'pendente' || i.status === 'atrasado')
   const history = invoices.filter((i) => i.status === 'pago' || i.status === 'cancelado')
 
@@ -29,15 +33,17 @@ export default async function PortalInvoicesPage() {
           Em aberto
         </h2>
         {open.length === 0 ? (
-          <p className="rounded-2xl border border-dashed border-border bg-card p-8 text-center text-muted-foreground">Sem faturas por pagar neste momento.</p>
+          <Surface tone="dashed" className="p-8 text-center text-muted-foreground">Sem faturas por pagar neste momento.</Surface>
         ) : (
-          <ul className="divide-y divide-border overflow-hidden rounded-2xl border border-border bg-card">
-            {open.map((invoice) => (
+          <Surface as="ul" className="divide-y divide-border overflow-hidden">
+            {open.map((invoice, i) => (
               <li key={invoice.id}>
-                <InvoiceListItem invoice={invoice} />
+                <Reveal delay={Math.min(i, 5) * 0.05} y={12}>
+                  <InvoiceListItem invoice={invoice} />
+                </Reveal>
               </li>
             ))}
-          </ul>
+          </Surface>
         )}
       </section>
 
@@ -46,15 +52,15 @@ export default async function PortalInvoicesPage() {
           Histórico
         </h2>
         {history.length === 0 ? (
-          <p className="rounded-2xl border border-dashed border-border bg-card p-6 text-sm text-muted-foreground">Ainda sem faturas pagas ou canceladas.</p>
+          <Surface tone="dashed" className="p-6 text-sm text-muted-foreground">Ainda sem faturas pagas ou canceladas.</Surface>
         ) : (
-          <ul className="divide-y divide-border overflow-hidden rounded-2xl border border-border bg-card">
+          <Surface as="ul" className="divide-y divide-border overflow-hidden">
             {history.map((invoice) => (
               <li key={invoice.id}>
                 <InvoiceListItem invoice={invoice} />
               </li>
             ))}
-          </ul>
+          </Surface>
         )}
       </section>
     </div>

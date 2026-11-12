@@ -1,5 +1,5 @@
-import { ModuleSkeleton } from '@/components/admin/business/module-skeleton'
+import { FormSkeleton } from '@/components/portal/portal-skeleton'
 
 export default function Loading() {
-  return <ModuleSkeleton />
+  return <FormSkeleton />
 }

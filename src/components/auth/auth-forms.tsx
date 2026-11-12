@@ -1,6 +1,7 @@
 'use client'
 
 import { useActionState, useState } from 'react'
+import { AnimatePresence, m } from 'framer-motion'
 import { Loader2 } from 'lucide-react'
 import { login, register, type AuthState } from '@/actions/auth'
 import { forgotPassword } from '@/actions/clients'
@@ -9,6 +10,18 @@ import { Input } from '@/components/ui/input'
 import { Label } from '@/components/ui/label'
 
 const initial: AuthState = { status: 'idle' }
+const switchTransition = { duration: 0.22, ease: [0.21, 0.47, 0.32, 0.98] as const }
+
+/** Troca entre duas vistas (login/registo, login/esqueci-password) com um fade curto em vez da troca crua de sempre. */
+function SwitchView({ viewKey, children }: { viewKey: string; children: React.ReactNode }) {
+  return (
+    <AnimatePresence mode="wait" initial={false}>
+      <m.div key={viewKey} initial={{ opacity: 0, y: 6 }} animate={{ opacity: 1, y: 0 }} exit={{ opacity: 0, y: -6 }} transition={switchTransition}>
+        {children}
+      </m.div>
+    </AnimatePresence>
+  )
+}
 
 function Field({ id, label, error, ...props }: React.ComponentProps<typeof Input> & { id: string; label: string; error?: string }) {
   return (
@@ -78,20 +91,24 @@ function LoginForm() {
   const [state, action, pending] = useActionState(login, initial)
   const [forgot, setForgot] = useState(false)
 
-  if (forgot) return <ForgotPasswordForm onBack={() => setForgot(false)} />
-
   return (
-    <form action={action} className="grid gap-5">
-      <Field id="email" label="Email" type="email" required autoComplete="email" defaultValue={state.values?.email} error={state.fieldErrors?.email} />
-      <Field id="password" label="Palavra-passe" type="password" required autoComplete="current-password" error={state.fieldErrors?.password} />
-      <Button type="submit" disabled={pending} className="h-12 rounded-xl text-base">
-        {pending ? <Loader2 className="animate-spin" aria-hidden /> : null} Entrar
-      </Button>
-      <button type="button" onClick={() => setForgot(true)} className="w-fit text-sm font-medium text-muted-foreground hover:text-foreground hover:underline">
-        Esqueceu-se da password?
-      </button>
-      <Feedback state={state} />
-    </form>
+    <SwitchView viewKey={forgot ? 'forgot' : 'login'}>
+      {forgot ? (
+        <ForgotPasswordForm onBack={() => setForgot(false)} />
+      ) : (
+        <form action={action} className="grid gap-5">
+          <Field id="email" label="Email" type="email" required autoComplete="email" defaultValue={state.values?.email} error={state.fieldErrors?.email} />
+          <Field id="password" label="Palavra-passe" type="password" required autoComplete="current-password" error={state.fieldErrors?.password} />
+          <Button type="submit" disabled={pending} className="h-12 rounded-xl text-base">
+            {pending ? <Loader2 className="animate-spin" aria-hidden /> : null} Entrar
+          </Button>
+          <button type="button" onClick={() => setForgot(true)} className="w-fit text-sm font-medium text-muted-foreground hover:text-foreground hover:underline">
+            Esqueceu-se da password?
+          </button>
+          <Feedback state={state} />
+        </form>
+      )}
+    </SwitchView>
   )
 }
 
@@ -134,7 +151,7 @@ export function AuthForms() {
           </button>
         ))}
       </div>
-      {mode === 'login' ? <LoginForm /> : <RegisterForm />}
+      <SwitchView viewKey={mode}>{mode === 'login' ? <LoginForm /> : <RegisterForm />}</SwitchView>
     </div>
   )
 }

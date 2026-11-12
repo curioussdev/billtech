@@ -2,6 +2,9 @@ import Image from 'next/image'
 import Link from 'next/link'
 import { ArrowRight, Check } from 'lucide-react'
 import { Reveal } from '@/components/motion/reveal'
+import { GlowOrb } from '@/components/marketing/glow-orb'
+import { IconTile } from '@/components/marketing/icon-tile'
+import { SectionHeading, SectionShell } from '@/components/marketing/section'
 import { Button } from '@/components/ui/button'
 import { Card, CardContent } from '@/components/ui/card'
 import type { SiteContent } from '@/lib/content/schema'
@@ -9,13 +12,10 @@ import { getIcon } from '@/lib/icons'
 
 export function About({ content }: { content: SiteContent['about'] }) {
   return (
-    <section id="sobre" className="border-y border-border bg-muted/40 px-5 py-24 lg:px-8 lg:py-32">
+    <SectionShell id="sobre" tone="band">
       <div className="mx-auto grid max-w-7xl items-center gap-14 lg:grid-cols-[1.1fr_.9fr]">
         <Reveal>
-          <p className="mb-4 text-sm font-bold uppercase tracking-[0.18em] text-primary">{content.eyebrow}</p>
-          <h2 className="max-w-xl text-4xl font-black tracking-tight sm:text-5xl">
-            {content.titleStart} <span className="text-primary">{content.titleHighlight}</span>
-          </h2>
+          <SectionHeading eyebrow={content.eyebrow} titleStart={content.titleStart} titleHighlight={content.titleHighlight} className="max-w-xl" />
           <p className="mt-7 max-w-xl text-lg leading-8 text-muted-foreground">{content.body}</p>
           {content.linkLabel && (
             <Button render={<Link href="/#contato" />} nativeButton={false} variant="link" className="mt-5 h-auto px-0 text-base">
@@ -26,7 +26,7 @@ export function About({ content }: { content: SiteContent['about'] }) {
 
         <Reveal delay={0.12}>
           <Card className="relative overflow-hidden rounded-3xl border-primary/15 bg-card shadow-xl">
-            <div aria-hidden className="absolute right-0 top-0 h-32 w-32 rounded-full bg-primary/10 blur-2xl" />
+            <GlowOrb tone="primary" className="-right-6 -top-6 h-32 w-32" />
             <CardContent className="relative p-8">
               <div className="flex items-center gap-5">
                 <div className="relative size-20 shrink-0 overflow-hidden rounded-full ring-4 ring-primary/10">
@@ -39,15 +39,12 @@ export function About({ content }: { content: SiteContent['about'] }) {
               </div>
               {content.skills.length > 0 && (
                 <ul className="mt-9 grid grid-cols-2 gap-3">
-                  {content.skills.map((skill) => {
-                    const Icon = getIcon(skill.icon)
-                    return (
-                      <li key={skill.label} className="flex items-center gap-3 rounded-2xl bg-muted p-4 text-sm font-semibold">
-                        <Icon className="text-primary" aria-hidden />
-                        {skill.label}
-                      </li>
-                    )
-                  })}
+                  {content.skills.map((skill) => (
+                    <li key={skill.label} className="flex items-center gap-3 rounded-2xl bg-muted p-3 text-sm font-semibold">
+                      <IconTile icon={getIcon(skill.icon)} size="sm" />
+                      {skill.label}
+                    </li>
+                  ))}
                 </ul>
               )}
               {content.footnote && (
@@ -59,6 +56,6 @@ export function About({ content }: { content: SiteContent['about'] }) {
           </Card>
         </Reveal>
       </div>
-    </section>
+    </SectionShell>
   )
 }

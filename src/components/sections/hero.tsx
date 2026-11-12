@@ -1,6 +1,7 @@
 import Link from 'next/link'
 import { ArrowRight, ChevronRight } from 'lucide-react'
 import { Reveal } from '@/components/motion/reveal'
+import { GlowOrb } from '@/components/marketing/glow-orb'
 import { Badge } from '@/components/ui/badge'
 import { Button } from '@/components/ui/button'
 import type { SiteContent } from '@/lib/content/schema'
@@ -8,7 +9,8 @@ import type { SiteContent } from '@/lib/content/schema'
 export function Hero({ content }: { content: SiteContent['hero'] }) {
   return (
     <section id="inicio" className="relative px-5 pb-20 pt-36 lg:px-8 lg:pb-28 lg:pt-48">
-      <div aria-hidden className="pointer-events-none absolute left-1/2 top-0 h-[500px] w-[700px] max-w-full -translate-x-1/2 rounded-full bg-primary/10 blur-3xl" />
+      <GlowOrb tone="primary" className="pointer-events-none left-1/2 top-0 h-[500px] w-[700px] max-w-full -translate-x-1/2" />
+      <GlowOrb tone="accent" className="pointer-events-none right-[8%] top-24 hidden h-64 w-64 sm:block" />
       <div className="relative z-10 mx-auto max-w-5xl text-center">
         {content.badge && (
           <Reveal y={16}>

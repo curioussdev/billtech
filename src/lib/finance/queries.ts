@@ -24,10 +24,11 @@ function sortInvoices(invoices: Invoice[]): Invoice[] {
   })
 }
 
-export async function getMyInvoices(): Promise<InvoiceWithDetails[]> {
+/** `clientId` é defesa em profundidade por cima da RLS (que já restringe por si só). */
+export async function getMyInvoices(clientId: string): Promise<InvoiceWithDetails[]> {
   const supabase = await createClient()
   const [{ data: invoiceRows }, { data: installmentRows }, { data: paymentRows }] = await Promise.all([
-    supabase.from('invoices').select('*'),
+    supabase.from('invoices').select('*').eq('client_id', clientId),
     supabase.from('installments').select('*').order('installment_number', { ascending: true }),
     supabase.from('payments').select('*').order('created_at', { ascending: false }),
   ])
@@ -43,9 +44,10 @@ export async function getMyInvoices(): Promise<InvoiceWithDetails[]> {
   }))
 }
 
-export async function getMyInvoice(id: string): Promise<InvoiceWithDetails | null> {
+/** `clientId` é defesa em profundidade por cima da RLS (que já restringe por si só). */
+export async function getMyInvoice(id: string, clientId: string): Promise<InvoiceWithDetails | null> {
   const supabase = await createClient()
-  const { data: invoiceRow } = await supabase.from('invoices').select('*').eq('id', id).maybeSingle()
+  const { data: invoiceRow } = await supabase.from('invoices').select('*').eq('id', id).eq('client_id', clientId).maybeSingle()
   if (!invoiceRow) return null
 
   const [{ data: installmentRows }, { data: paymentRows }] = await Promise.all([

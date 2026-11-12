@@ -1,17 +1,15 @@
 import { Reveal } from '@/components/motion/reveal'
+import { SectionHeading, SectionShell } from '@/components/marketing/section'
 import { Tabs, TabsContent, TabsList, TabsTrigger } from '@/components/ui/tabs'
 import type { SiteContent } from '@/lib/content/schema'
 
 export function Sectors({ content }: { content: SiteContent['sectors'] }) {
   const sectors = content.items.map((item, i) => ({ ...item, value: `setor-${i}` }))
   return (
-    <section id="setores" className="px-5 py-24 lg:px-8 lg:py-32">
+    <SectionShell id="setores" tone="base">
       <div className="mx-auto max-w-7xl">
         <Reveal className="mb-12 max-w-2xl">
-          <p className="mb-4 text-sm font-bold uppercase tracking-[0.18em] text-primary">{content.eyebrow}</p>
-          <h2 className="text-4xl font-black tracking-tight sm:text-5xl">
-            {content.titleStart} <span className="text-primary">{content.titleHighlight}</span>
-          </h2>
+          <SectionHeading eyebrow={content.eyebrow} titleStart={content.titleStart} titleHighlight={content.titleHighlight} />
         </Reveal>
 
         <Reveal delay={0.1}>
@@ -28,17 +26,21 @@ export function Sectors({ content }: { content: SiteContent['sectors'] }) {
               ))}
             </TabsList>
 
-            <div className="flex min-h-64 items-center rounded-3xl bg-primary p-8 text-primary-foreground sm:p-14">
-              {sectors.map((sector) => (
-                <TabsContent key={sector.value} value={sector.value} className="text-base">
-                  <h3 className="text-3xl font-bold">{sector.title}</h3>
-                  <p className="mt-5 max-w-lg text-lg leading-8">{sector.text}</p>
-                </TabsContent>
-              ))}
+            {/* Efeito de "folha empilhada" (um segundo plano a espreitar) — distingue este painel do de Contact. */}
+            <div className="relative">
+              <div aria-hidden className="absolute -bottom-4 -right-4 hidden h-full w-full rounded-3xl bg-accent/20 lg:block" />
+              <div className="relative flex min-h-64 items-center rounded-3xl bg-primary p-8 text-primary-foreground sm:p-14">
+                {sectors.map((sector) => (
+                  <TabsContent key={sector.value} value={sector.value} className="text-base">
+                    <h3 className="text-3xl font-bold">{sector.title}</h3>
+                    <p className="mt-5 max-w-lg text-lg leading-8">{sector.text}</p>
+                  </TabsContent>
+                ))}
+              </div>
             </div>
           </Tabs>
         </Reveal>
       </div>
-    </section>
+    </SectionShell>
   )
 }

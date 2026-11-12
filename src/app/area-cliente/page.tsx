@@ -2,16 +2,18 @@ import type { Metadata } from 'next'
 import Link from 'next/link'
 import { ArrowRight, FolderKanban, Inbox, MessageCircle, Receipt, Sparkles, Wrench, Bug, Calculator, LifeBuoy } from 'lucide-react'
 import { RequestStatusBadge, UnreadDot } from '@/components/portal/badges'
+import { IconTile } from '@/components/portal/icon-tile'
 import { InvoiceListItem } from '@/components/portal/invoice-widgets'
 import { Reveal } from '@/components/motion/reveal'
 import { LoyaltyCard } from '@/components/portal/loyalty-card'
 import { ProjectCard } from '@/components/portal/project-widgets'
+import { Surface } from '@/components/portal/surface'
 import { Button } from '@/components/ui/button'
 import { requireUser } from '@/lib/auth'
 import { getSiteContent } from '@/lib/content/get'
 import { getMyInvoices, getMyLoyalty } from '@/lib/finance/queries'
 import { formatDate, OPEN_STATUSES, requestTypeLabels } from '@/lib/portal/labels'
-import { getProjects, getRequests } from '@/lib/portal/queries'
+import { getProjects, getRequests, getUnreadMessagesCount } from '@/lib/portal/queries'
 
 export const metadata: Metadata = { title: 'Visão geral' }
 
@@ -24,11 +26,17 @@ const quickActions = [
 
 export default async function PortalHomePage() {
   const profile = await requireUser()
-  const [projects, requests, invoices, loyalty, { general }] = await Promise.all([getProjects(), getRequests(), getMyInvoices(), getMyLoyalty(), getSiteContent()])
+  const [projects, requests, invoices, loyalty, { general }, unreadMessages] = await Promise.all([
+    getProjects(),
+    getRequests(),
+    getMyInvoices(profile.id),
+    getMyLoyalty(),
+    getSiteContent(),
+    getUnreadMessagesCount(profile.id),
+  ])
 
   const activeProjects = projects.filter((p) => p.status !== 'entregue' && p.status !== 'manutencao')
   const openRequests = requests.filter((r) => OPEN_STATUSES.includes(r.status))
-  const unread = requests.filter((r) => r.client_unread)
   const openInvoices = invoices.filter((i) => i.status === 'pendente' || i.status === 'atrasado')
   const firstName = (profile.full_name || profile.email).split(/[\s@]/)[0]
 
@@ -51,17 +59,17 @@ export default async function PortalHomePage() {
           { label: 'Projetos em curso', value: activeProjects.length, href: '/area-cliente/projetos', icon: FolderKanban },
           { label: 'Faturas em aberto', value: openInvoices.length, href: '/area-cliente/pagamentos', icon: Receipt, highlight: openInvoices.some((i) => i.status === 'atrasado') },
           { label: 'Pedidos em aberto', value: openRequests.length, href: '/area-cliente/pedidos', icon: Inbox },
-          { label: 'Mensagens por ler', value: unread.length, href: '/area-cliente/pedidos', icon: MessageCircle, highlight: unread.length > 0 },
+          { label: 'Mensagens por ler', value: unreadMessages, href: '/area-cliente/mensagens', icon: MessageCircle, highlight: unreadMessages > 0 },
         ].map((stat, i) => (
           <Reveal key={stat.label} delay={i * 0.06}>
-            <Link href={stat.href} className="flex items-center gap-4 rounded-2xl border border-border bg-card p-5 transition-colors hover:border-primary">
-              <span className={`flex size-11 items-center justify-center rounded-xl ${stat.highlight ? 'bg-primary text-primary-foreground' : 'bg-primary/10 text-primary'}`}>
-                <stat.icon aria-hidden />
-              </span>
-              <span>
-                <strong className="block text-2xl font-black tabular-nums">{stat.value}</strong>
-                <span className="text-sm text-muted-foreground">{stat.label}</span>
-              </span>
+            <Link href={stat.href} className="block">
+              <Surface className="flex items-center gap-4 p-5 transition-colors hover:border-primary">
+                <IconTile icon={stat.icon} tone={stat.highlight ? 'solid' : 'soft'} />
+                <span>
+                  <strong className="block text-2xl font-black tabular-nums">{stat.value}</strong>
+                  <span className="text-sm text-muted-foreground">{stat.label}</span>
+                </span>
+              </Surface>
             </Link>
           </Reveal>
         ))}
@@ -72,15 +80,17 @@ export default async function PortalHomePage() {
           Como podemos ajudar?
         </h2>
         <ul className="mt-4 grid gap-4 sm:grid-cols-2 lg:grid-cols-4">
-          {quickActions.map((action) => (
+          {quickActions.map((action, i) => (
             <li key={action.type}>
-              <Link href={`/area-cliente/pedidos/novo?tipo=${action.type}`} className="group flex h-full flex-col gap-2 rounded-2xl border border-border bg-card p-5 transition-colors hover:border-primary">
-                <span className="flex size-10 items-center justify-center rounded-xl bg-primary/10 text-primary transition-colors group-hover:bg-primary group-hover:text-primary-foreground">
-                  <action.icon className="size-5" aria-hidden />
-                </span>
-                <span className="font-semibold">{action.title}</span>
-                <span className="text-sm text-muted-foreground">{action.text}</span>
-              </Link>
+              <Reveal delay={i * 0.06} y={16}>
+                <Link href={`/area-cliente/pedidos/novo?tipo=${action.type}`} className="block">
+                  <Surface className="group flex h-full flex-col gap-2 p-5 transition-colors hover:border-primary">
+                    <IconTile icon={action.icon} size="sm" className="transition-colors group-hover:bg-primary group-hover:text-primary-foreground" />
+                    <span className="font-semibold">{action.title}</span>
+                    <span className="text-sm text-muted-foreground">{action.text}</span>
+                  </Surface>
+                </Link>
+              </Reveal>
             </li>
           ))}
         </ul>
@@ -97,9 +107,9 @@ export default async function PortalHomePage() {
             </Link>
           </div>
           {projects.length === 0 ? (
-            <p className="mt-4 rounded-2xl border border-dashed border-border bg-card p-6 text-sm text-muted-foreground">
+            <Surface tone="dashed" className="mt-4 p-6 text-sm text-muted-foreground">
               Ainda não há projetos na sua conta. Assim que iniciarmos o primeiro, acompanha aqui o progresso, etapas e datas.
-            </p>
+            </Surface>
           ) : (
             <ul className="mt-4 grid gap-4">
               {projects.slice(0, 3).map((project, i) => (
@@ -128,13 +138,13 @@ export default async function PortalHomePage() {
                   Ver todas
                 </Link>
               </div>
-              <ul className="mt-4 divide-y divide-border overflow-hidden rounded-2xl border border-border bg-card">
+              <Surface as="ul" className="mt-4 divide-y divide-border overflow-hidden">
                 {openInvoices.slice(0, 3).map((invoice) => (
                   <li key={invoice.id}>
                     <InvoiceListItem invoice={invoice} />
                   </li>
                 ))}
-              </ul>
+              </Surface>
             </section>
           )}
 
@@ -148,9 +158,9 @@ export default async function PortalHomePage() {
               </Link>
             </div>
             {requests.length === 0 ? (
-              <p className="mt-4 rounded-2xl border border-dashed border-border bg-card p-6 text-sm text-muted-foreground">Ainda não fez nenhum pedido. É simples: use «Fazer um pedido» acima.</p>
+              <Surface tone="dashed" className="mt-4 p-6 text-sm text-muted-foreground">Ainda não fez nenhum pedido. É simples: use «Fazer um pedido» acima.</Surface>
             ) : (
-              <ul className="mt-4 divide-y divide-border overflow-hidden rounded-2xl border border-border bg-card">
+              <Surface as="ul" className="mt-4 divide-y divide-border overflow-hidden">
                 {requests.slice(0, 5).map((r) => (
                   <li key={r.id}>
                     <Link href={`/area-cliente/pedidos/${r.id}`} className="flex flex-col gap-1.5 p-4 transition-colors hover:bg-muted/60">
@@ -165,11 +175,11 @@ export default async function PortalHomePage() {
                     </Link>
                   </li>
                 ))}
-              </ul>
+              </Surface>
             )}
           </section>
 
-          <section aria-labelledby="contacto" className="rounded-2xl border border-border bg-card p-5">
+          <Surface as="section" aria-labelledby="contacto" className="p-5">
             <h2 id="contacto" className="flex items-center gap-2 text-lg font-bold">
               <LifeBuoy className="size-5 text-primary" aria-hidden /> A sua equipa
             </h2>
@@ -179,7 +189,7 @@ export default async function PortalHomePage() {
                 <MessageCircle aria-hidden /> Falar por WhatsApp<span className="sr-only"> (abre num novo separador)</span>
               </Button>
             )}
-          </section>
+          </Surface>
         </div>
       </div>
     </div>

@@ -78,9 +78,6 @@ export async function createCheckoutSession(input: unknown): Promise<CheckoutSes
     return { ok: true, url: null, mock: true }
   }
 
-  // A PARTIR DAQUI é código real de Stripe, ainda por testar contra uma conta a sério — reveja os
-  // nomes de campo na documentação atual da Stripe antes de ligar as chaves de produção (a API
-  // evolui e este ficheiro foi escrito sem uma conta Stripe disponível para testar).
   try {
     const stripe = getStripeClient()
     const session = await stripe.checkout.sessions.create(

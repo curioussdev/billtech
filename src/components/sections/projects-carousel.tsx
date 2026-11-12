@@ -2,6 +2,7 @@ import Image from 'next/image'
 import Link from 'next/link'
 import { ArrowRight } from 'lucide-react'
 import { Reveal } from '@/components/motion/reveal'
+import { SectionHeading } from '@/components/marketing/section'
 import { Badge } from '@/components/ui/badge'
 import { AutoCarousel } from '@/components/sections/auto-carousel'
 import type { Project, SiteContent } from '@/lib/content/schema'
@@ -39,8 +40,7 @@ export function ProjectsCarousel({ intro, projects }: { intro: SiteContent['proj
     <section id="projetos" className="bg-inverse px-5 py-24 text-inverse-foreground lg:px-8 lg:py-32">
       <div className="mx-auto max-w-7xl">
         <Reveal>
-          <p className="mb-4 text-sm font-bold uppercase tracking-[0.18em] text-inverse-brand">{intro.eyebrow}</p>
-          <h2 className="max-w-3xl text-4xl font-black tracking-tight sm:text-5xl">{intro.title}</h2>
+          <SectionHeading eyebrow={intro.eyebrow} title={intro.title} tone="inverse" titleClassName="max-w-3xl" />
           <p className="mt-4 max-w-xl text-inverse-muted">{intro.subtitle}</p>
         </Reveal>
 

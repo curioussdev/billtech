@@ -6,8 +6,11 @@ import { ArrowLeft, ArrowUpRight, CalendarClock, Plus } from 'lucide-react'
 import { DueBadge, ProjectStageBadge, RequestStatusBadge } from '@/components/portal/badges'
 import { ContractCard } from '@/components/portal/contract-card'
 import { DocumentsSection } from '@/components/portal/documents-section'
+import { Reveal } from '@/components/motion/reveal'
 import { ProgressBar, ProjectStepper, ProjectTimeline } from '@/components/portal/project-widgets'
+import { Surface } from '@/components/portal/surface'
 import { Button } from '@/components/ui/button'
+import { requireUser } from '@/lib/auth'
 import { formatDate, requestTypeLabels } from '@/lib/portal/labels'
 import { dueSeverity } from '@/lib/portal/schedule'
 import { getProject, getProjectDocuments, getProjectEvents, getRequests } from '@/lib/portal/queries'
@@ -19,7 +22,8 @@ export default async function PortalProjectPage({ params }: { params: Promise<{ 
   const { id } = await params
   if (!z.uuid().safeParse(id).success) notFound()
 
-  const [project, requests] = await Promise.all([getProject(id), getRequests()])
+  const profile = await requireUser()
+  const [project, requests] = await Promise.all([getProject(id, profile.id), getRequests()])
   if (!project) notFound()
   const supabase = await createClient()
   const [events, documents, { data: contract }] = await Promise.all([getProjectEvents(project.id), getProjectDocuments(project.id), supabase.from('contracts').select('sent_at').eq('project_id', project.id).maybeSingle()])
@@ -55,14 +59,14 @@ export default async function PortalProjectPage({ params }: { params: Promise<{ 
         </div>
       </header>
 
-      <section aria-label="Estado do projeto" className="grid gap-6 rounded-2xl border border-border bg-card p-6">
+      <Surface as="section" aria-label="Estado do projeto" className="grid gap-6 p-6">
         <ProjectStepper stage={project.status} />
         <ProgressBar value={project.progress} label={`Progresso de ${project.name}`} />
         <p className="flex items-center gap-2 text-sm text-muted-foreground">
           <CalendarClock className="size-4" aria-hidden />
           {project.due_date ? `Entrega prevista: ${formatDate(project.due_date)}` : 'Data de entrega ainda por definir'} · última atualização {formatDate(project.updated_at)}
         </p>
-      </section>
+      </Surface>
 
       <ContractCard projectId={project.id} document={documents.find((d) => d.kind === 'contrato')} pendingSentAt={contract?.sent_at} />
 
@@ -70,9 +74,9 @@ export default async function PortalProjectPage({ params }: { params: Promise<{ 
         <h2 id="atividade-projeto" className="text-xl font-bold">
           Histórico de atividade
         </h2>
-        <div className="mt-4 rounded-2xl border border-border bg-card p-6">
+        <Surface className="mt-4 p-6">
           <ProjectTimeline events={events} />
-        </div>
+        </Surface>
       </section>
 
       <section aria-labelledby="documentos-projeto">
@@ -89,20 +93,22 @@ export default async function PortalProjectPage({ params }: { params: Promise<{ 
           Pedidos deste projeto
         </h2>
         {related.length === 0 ? (
-          <p className="mt-4 rounded-2xl border border-dashed border-border bg-card p-6 text-sm text-muted-foreground">Nenhum pedido ligado a este projeto. Use os botões acima quando precisar de algo.</p>
+          <Surface tone="dashed" className="mt-4 p-6 text-sm text-muted-foreground">Nenhum pedido ligado a este projeto. Use os botões acima quando precisar de algo.</Surface>
         ) : (
-          <ul className="mt-4 divide-y divide-border overflow-hidden rounded-2xl border border-border bg-card">
-            {related.map((r) => (
+          <Surface as="ul" className="mt-4 divide-y divide-border overflow-hidden">
+            {related.map((r, i) => (
               <li key={r.id}>
-                <Link href={`/area-cliente/pedidos/${r.id}`} className="flex flex-wrap items-center justify-between gap-2 p-4 hover:bg-muted/60">
-                  <span className="font-medium">{r.title}</span>
-                  <span className="flex items-center gap-2 text-xs text-muted-foreground">
-                    {requestTypeLabels[r.type]} <RequestStatusBadge status={r.status} />
-                  </span>
-                </Link>
+                <Reveal delay={Math.min(i, 5) * 0.05} y={12}>
+                  <Link href={`/area-cliente/pedidos/${r.id}`} className="flex flex-wrap items-center justify-between gap-2 p-4 hover:bg-muted/60">
+                    <span className="font-medium">{r.title}</span>
+                    <span className="flex items-center gap-2 text-xs text-muted-foreground">
+                      {requestTypeLabels[r.type]} <RequestStatusBadge status={r.status} />
+                    </span>
+                  </Link>
+                </Reveal>
               </li>
             ))}
-          </ul>
+          </Surface>
         )}
       </section>
     </div>

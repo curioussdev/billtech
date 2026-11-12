@@ -2,6 +2,7 @@ import type { Metadata } from 'next'
 import { notFound } from 'next/navigation'
 import { z } from 'zod'
 import { PrintButton } from '@/components/portal/print-button'
+import { Surface } from '@/components/portal/surface'
 import { formatDate, formatEUR } from '@/lib/finance/labels'
 import { getMyInvoice } from '@/lib/finance/queries'
 import { requireUser } from '@/lib/auth'
@@ -19,7 +20,7 @@ export default async function PortalInvoiceReceiptPage({ params }: { params: Pro
   if (!z.uuid().safeParse(id).success) notFound()
 
   const profile = await requireUser()
-  const invoice = await getMyInvoice(id)
+  const invoice = await getMyInvoice(id, profile.id)
   if (!invoice) notFound()
   const payments = invoice.payments.filter((p) => p.status === 'sucesso').sort((a, b) => (a.paidAt ?? '').localeCompare(b.paidAt ?? ''))
   if (payments.length === 0) notFound() // sem pagamento confirmado, não há recibo a emitir
@@ -33,7 +34,7 @@ export default async function PortalInvoiceReceiptPage({ params }: { params: Pro
         <PrintButton />
       </div>
 
-      <div className="grid gap-6 rounded-2xl border border-border bg-card p-8 print:rounded-none print:border-0 print:p-0">
+      <Surface className="grid gap-6 p-8 print:rounded-none print:border-0 print:p-0">
         <div className="flex items-start justify-between border-b border-border pb-6">
           <div>
             <p className="text-xl font-black tracking-tight">BillTech</p>
@@ -67,7 +68,7 @@ export default async function PortalInvoiceReceiptPage({ params }: { params: Pro
         </div>
 
         <p className="text-xs text-muted-foreground">Este documento serve como comprovativo de pagamento, não substitui fatura-recibo fiscal quando aplicável.</p>
-      </div>
+      </Surface>
     </div>
   )
 }

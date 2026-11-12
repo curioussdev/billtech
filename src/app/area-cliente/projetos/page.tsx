@@ -1,7 +1,9 @@
 import type { Metadata } from 'next'
 import Link from 'next/link'
 import { Plus } from 'lucide-react'
+import { Reveal } from '@/components/motion/reveal'
 import { ProjectCard } from '@/components/portal/project-widgets'
+import { Surface } from '@/components/portal/surface'
 import { Button } from '@/components/ui/button'
 import { getProjects } from '@/lib/portal/queries'
 
@@ -23,14 +25,16 @@ export default async function PortalProjectsPage() {
       </header>
 
       {projects.length === 0 ? (
-        <p className="rounded-2xl border border-dashed border-border bg-card p-8 text-muted-foreground">
+        <Surface tone="dashed" className="p-8 text-muted-foreground">
           Ainda não há projetos na sua conta. Tem uma ideia? Use «Propor um novo projeto» e falamos.
-        </p>
+        </Surface>
       ) : (
         <ul className="grid gap-5 md:grid-cols-2">
-          {projects.map((project) => (
+          {projects.map((project, i) => (
             <li key={project.id}>
-              <ProjectCard project={project} />
+              <Reveal delay={Math.min(i, 6) * 0.06} y={16}>
+                <ProjectCard project={project} />
+              </Reveal>
             </li>
           ))}
         </ul>

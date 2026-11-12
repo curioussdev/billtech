@@ -15,18 +15,18 @@ export default function OpengraphImage() {
           flexDirection: 'column',
           justifyContent: 'space-between',
           padding: 80,
-          background: '#0e1219',
+          background: '#000e0d',
           color: '#fafaf7',
         }}
       >
         <div style={{ display: 'flex', fontSize: 44, fontWeight: 800 }}>
-          Bill<span style={{ color: '#5fd3d0' }}>Tech</span>
+          Bill<span style={{ color: '#00c09a' }}>Tech</span>
         </div>
         <div style={{ display: 'flex', flexDirection: 'column' }}>
           <div style={{ fontSize: 72, fontWeight: 800, lineHeight: 1.05, letterSpacing: -2 }}>
             Transforme processos manuais em receita digital previsível.
           </div>
-          <div style={{ marginTop: 28, fontSize: 30, color: '#b4bcc8' }}>Desenvolvimento para PMEs · Automação · Sistemas sob medida</div>
+          <div style={{ marginTop: 28, fontSize: 30, color: '#9aacaa' }}>Desenvolvimento para PMEs · Automação · Sistemas sob medida</div>
         </div>
       </div>
     ),

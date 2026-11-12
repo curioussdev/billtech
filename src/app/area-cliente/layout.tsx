@@ -10,7 +10,7 @@ import { Button } from '@/components/ui/button'
 import { requireUser } from '@/lib/auth'
 import { getSiteContent } from '@/lib/content/get'
 import { formatEUR } from '@/lib/finance/labels'
-import { getRecentClientEvents } from '@/lib/portal/queries'
+import { getRecentClientEvents, getUnreadMessagesCount } from '@/lib/portal/queries'
 import { createClient } from '@/lib/supabase/server'
 
 export const metadata: Metadata = { title: { default: 'Área de cliente', template: '%s | Área de cliente' }, robots: { index: false } }
@@ -18,9 +18,9 @@ export const metadata: Metadata = { title: { default: 'Área de cliente', templa
 export default async function PortalLayout({ children }: { children: React.ReactNode }) {
   const profile = await requireUser()
   const supabase = await createClient()
-  const [{ count }, { count: unreadMessages }, { count: openInvoices }, { general }, unreadRequestRows, unreadBroadcastRows, overdueInvoiceRows, recentEvents] = await Promise.all([
+  const [{ count }, unreadMessages, { count: openInvoices }, { general }, unreadRequestRows, unreadBroadcastRows, overdueInvoiceRows, recentEvents] = await Promise.all([
     supabase.from('requests').select('id', { count: 'exact', head: true }).eq('client_id', profile.id).eq('client_unread', true),
-    supabase.from('broadcast_recipients').select('broadcast_id', { count: 'exact', head: true }).eq('client_id', profile.id).is('read_at', null),
+    getUnreadMessagesCount(profile.id),
     supabase.from('invoices').select('id', { count: 'exact', head: true }).eq('status', 'atrasado'),
     getSiteContent(),
     supabase.from('requests').select('id, title').eq('client_id', profile.id).eq('client_unread', true).order('last_message_at', { ascending: false }).limit(5),

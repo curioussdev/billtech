@@ -1,7 +1,9 @@
 import type { Metadata } from 'next'
 import Link from 'next/link'
 import { Plus } from 'lucide-react'
+import { Reveal } from '@/components/motion/reveal'
 import { PriorityBadge, RequestStatusBadge, UnreadDot } from '@/components/portal/badges'
+import { Surface } from '@/components/portal/surface'
 import { Button } from '@/components/ui/button'
 import { formatDate, OPEN_STATUSES, requestTypeLabels } from '@/lib/portal/labels'
 import { getRequests } from '@/lib/portal/queries'
@@ -41,33 +43,35 @@ export default async function PortalRequestsPage({ searchParams }: { searchParam
       </nav>
 
       {requests.length === 0 ? (
-        <div className="rounded-2xl border border-dashed border-border bg-card p-10 text-center">
+        <Surface tone="dashed" className="p-10 text-center">
           <p className="font-semibold">{showAll ? 'Ainda não fez nenhum pedido.' : 'Não tem pedidos em aberto.'}</p>
           <p className="mt-1 text-sm text-muted-foreground">Precisa de uma alteração ou de uma ideia nova? Estamos cá para ajudar.</p>
           <Button render={<Link href="/area-cliente/pedidos/novo" />} nativeButton={false} className="mt-5 rounded-full">
             Fazer um pedido
           </Button>
-        </div>
+        </Surface>
       ) : (
-        <ul className="divide-y divide-border overflow-hidden rounded-2xl border border-border bg-card">
-          {requests.map((r) => (
+        <Surface as="ul" className="divide-y divide-border overflow-hidden">
+          {requests.map((r, i) => (
             <li key={r.id}>
-              <Link href={`/area-cliente/pedidos/${r.id}`} className="grid gap-2 p-5 transition-colors hover:bg-muted/60">
-                <span className="flex flex-wrap items-start justify-between gap-2">
-                  <span className="font-semibold leading-snug">{r.title}</span>
-                  {r.client_unread && <UnreadDot label="Nova resposta" />}
-                </span>
-                <span className="flex flex-wrap items-center gap-2 text-xs text-muted-foreground">
-                  <RequestStatusBadge status={r.status} />
-                  {(r.priority === 'alta' || r.priority === 'urgente') && <PriorityBadge priority={r.priority} />}
-                  <span>{requestTypeLabels[r.type]}</span>
-                  <span aria-hidden>·</span>
-                  <span>Atualizado a {formatDate(r.last_message_at)}</span>
-                </span>
-              </Link>
+              <Reveal delay={Math.min(i, 6) * 0.04} y={12}>
+                <Link href={`/area-cliente/pedidos/${r.id}`} className="grid gap-2 p-5 transition-colors hover:bg-muted/60">
+                  <span className="flex flex-wrap items-start justify-between gap-2">
+                    <span className="font-semibold leading-snug">{r.title}</span>
+                    {r.client_unread && <UnreadDot label="Nova resposta" />}
+                  </span>
+                  <span className="flex flex-wrap items-center gap-2 text-xs text-muted-foreground">
+                    <RequestStatusBadge status={r.status} />
+                    {(r.priority === 'alta' || r.priority === 'urgente') && <PriorityBadge priority={r.priority} />}
+                    <span>{requestTypeLabels[r.type]}</span>
+                    <span aria-hidden>·</span>
+                    <span>Atualizado a {formatDate(r.last_message_at)}</span>
+                  </span>
+                </Link>
+              </Reveal>
             </li>
           ))}
-        </ul>
+        </Surface>
       )}
     </div>
   )

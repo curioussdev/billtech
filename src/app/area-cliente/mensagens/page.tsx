@@ -1,13 +1,17 @@
 import type { Metadata } from 'next'
 import Link from 'next/link'
 import { UnreadDot } from '@/components/portal/badges'
+import { Surface } from '@/components/portal/surface'
+import { Reveal } from '@/components/motion/reveal'
+import { requireUser } from '@/lib/auth'
 import { formatDate } from '@/lib/portal/labels'
 import { getInbox } from '@/lib/portal/queries'
 
 export const metadata: Metadata = { title: 'Mensagens' }
 
 export default async function PortalInboxPage() {
-  const inbox = await getInbox()
+  const profile = await requireUser()
+  const inbox = await getInbox(profile.id)
 
   return (
     <div className="grid gap-8">
@@ -17,24 +21,26 @@ export default async function PortalInboxPage() {
       </header>
 
       {inbox.length === 0 ? (
-        <p className="rounded-2xl border border-dashed border-border bg-card p-10 text-center text-muted-foreground">
+        <Surface tone="dashed" className="p-10 text-center text-muted-foreground">
           Ainda não recebeu mensagens. Quando a nossa equipa lhe escrever, aparece aqui (e avisamos por email).
-        </p>
+        </Surface>
       ) : (
-        <ul className="divide-y divide-border overflow-hidden rounded-2xl border border-border bg-card">
-          {inbox.map(({ broadcast, read_at }) => (
+        <Surface as="ul" className="divide-y divide-border overflow-hidden">
+          {inbox.map(({ broadcast, read_at }, i) => (
             <li key={broadcast.id}>
-              <Link href={`/area-cliente/mensagens/${broadcast.id}`} className="grid gap-1.5 p-5 transition-colors hover:bg-muted/60">
-                <span className="flex flex-wrap items-start justify-between gap-2">
-                  <span className={read_at ? 'font-medium leading-snug' : 'font-bold leading-snug'}>{broadcast.subject}</span>
-                  {!read_at && <UnreadDot label="Nova" />}
-                </span>
-                <span className="line-clamp-2 text-sm text-muted-foreground">{broadcast.body}</span>
-                <span className="text-xs text-muted-foreground">{formatDate(broadcast.created_at)}</span>
-              </Link>
+              <Reveal delay={Math.min(i, 5) * 0.05} y={12}>
+                <Link href={`/area-cliente/mensagens/${broadcast.id}`} className="grid gap-1.5 p-5 transition-colors hover:bg-muted/60">
+                  <span className="flex flex-wrap items-start justify-between gap-2">
+                    <span className={read_at ? 'font-medium leading-snug' : 'font-bold leading-snug'}>{broadcast.subject}</span>
+                    {!read_at && <UnreadDot label="Nova" />}
+                  </span>
+                  <span className="line-clamp-2 text-sm text-muted-foreground">{broadcast.body}</span>
+                  <span className="text-xs text-muted-foreground">{formatDate(broadcast.created_at)}</span>
+                </Link>
+              </Reveal>
             </li>
           ))}
-        </ul>
+        </Surface>
       )}
     </div>
   )

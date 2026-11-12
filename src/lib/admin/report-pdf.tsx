@@ -9,7 +9,7 @@ import type { Metric, ReportData } from '@/lib/admin/reports'
  * @react-pdf/renderer não usa HTML/Tailwind, tem os seus próprios primitivos de layout.
  */
 
-const colors = { ink: '#18202b', muted: '#6b7280', border: '#e2e4e8', primary: '#0f6a70', up: '#047857', down: '#b91c1c' }
+const colors = { ink: '#18202b', muted: '#6b7280', border: '#e2e4e8', primary: '#006e4f', up: '#047857', down: '#b91c1c' }
 
 const styles = StyleSheet.create({
   page: { padding: 36, fontSize: 10, color: colors.ink, fontFamily: 'Helvetica' },
@@ -24,7 +24,7 @@ const styles = StyleSheet.create({
   cardValue: { fontSize: 14, fontWeight: 700, marginBottom: 2 },
   cardChange: { fontSize: 8 },
   listItem: { flexDirection: 'row', alignItems: 'center', gap: 6, marginBottom: 6 },
-  rank: { width: 14, height: 14, borderRadius: 7, backgroundColor: '#e6f2f2', textAlign: 'center', fontSize: 7, paddingTop: 3, color: colors.primary, fontWeight: 700 },
+  rank: { width: 14, height: 14, borderRadius: 7, backgroundColor: '#e9f2f1', textAlign: 'center', fontSize: 7, paddingTop: 3, color: colors.primary, fontWeight: 700 },
   listTitle: { fontSize: 9, fontWeight: 700 },
   listSub: { fontSize: 8, color: colors.muted },
   listValue: { fontSize: 9, fontWeight: 700, marginLeft: 'auto' },

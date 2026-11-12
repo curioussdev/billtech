@@ -1,8 +1,11 @@
 import type { Metadata } from 'next'
 import Link from 'next/link'
 import { ArrowLeft, CalendarClock, CheckCircle2, Clock, CreditCard, XCircle } from 'lucide-react'
+import { Reveal } from '@/components/motion/reveal'
 import { RevokeAutopayButton, SetupAutopayButton } from '@/components/portal/autopay-widgets'
 import { PaymentStatusBadge } from '@/components/portal/invoice-widgets'
+import { Surface } from '@/components/portal/surface'
+import { requireUser } from '@/lib/auth'
 import { formatDate, formatEUR } from '@/lib/finance/labels'
 import { getMyAutopayMandate, getMyInvoices } from '@/lib/finance/queries'
 import type { Installment, Payment } from '@/types/finance'
@@ -12,7 +15,8 @@ export const metadata: Metadata = { title: 'Débito automático' }
 type DueItem = { invoiceId: string; description: string; amount: number; dueDate: string }
 
 export default async function AutopayMethodPage({ searchParams }: { searchParams: Promise<{ ativado?: string; cancelado?: string }> }) {
-  const [{ ativado, cancelado }, display, invoices] = await Promise.all([searchParams, getMyAutopayMandate(), getMyInvoices()])
+  const profile = await requireUser()
+  const [{ ativado, cancelado }, display, invoices] = await Promise.all([searchParams, getMyAutopayMandate(), getMyInvoices(profile.id)])
   const autopayInvoices = invoices.filter((i) => i.autopayEnabled && i.status !== 'pago' && i.status !== 'cancelado')
 
   // Próxima parcela/fatura a ser cobrada automaticamente — a vencer mais cedo entre as faturas com autopay ativo.
@@ -56,7 +60,7 @@ export default async function AutopayMethodPage({ searchParams }: { searchParams
         </p>
       )}
 
-      <section aria-label="Método guardado" className="grid gap-3 rounded-2xl border border-border bg-card p-6">
+      <Surface as="section" aria-label="Método guardado" className="grid gap-3 p-6">
         {display ? (
           <>
             <p className="flex items-center gap-2 text-sm font-semibold">
@@ -72,10 +76,10 @@ export default async function AutopayMethodPage({ searchParams }: { searchParams
             <SetupAutopayButton />
           </>
         )}
-      </section>
+      </Surface>
 
       {display && nextDue && (
-        <section aria-label="Próxima cobrança" className="grid gap-1 rounded-2xl border border-primary/30 bg-primary/5 p-5">
+        <Surface as="section" tone="primary" aria-label="Próxima cobrança" className="grid gap-1 p-5">
           <p className="flex items-center gap-1.5 text-xs font-semibold uppercase tracking-wide text-primary">
             <CalendarClock className="size-3.5" aria-hidden /> Próxima cobrança automática
           </p>
@@ -83,7 +87,7 @@ export default async function AutopayMethodPage({ searchParams }: { searchParams
           <p className="text-sm text-muted-foreground">
             {nextDue.description} · {formatDate(nextDue.dueDate)}
           </p>
-        </section>
+        </Surface>
       )}
 
       {display && (
@@ -92,16 +96,18 @@ export default async function AutopayMethodPage({ searchParams }: { searchParams
             Faturas com cobrança automática
           </h2>
           {autopayInvoices.length === 0 ? (
-            <p className="rounded-2xl border border-dashed border-border bg-card p-6 text-sm text-muted-foreground">
+            <Surface tone="dashed" className="p-6 text-sm text-muted-foreground">
               Nenhuma fatura está a ser cobrada automaticamente. Ative a opção dentro de cada fatura em aberto.
-            </p>
+            </Surface>
           ) : (
             <ul className="grid gap-2">
-              {autopayInvoices.map((invoice) => (
+              {autopayInvoices.map((invoice, i) => (
                 <li key={invoice.id}>
-                  <Link href={`/area-cliente/pagamentos/${invoice.id}`} className="block rounded-xl border border-border bg-card p-4 text-sm hover:bg-muted/60">
-                    <span className="font-medium">{invoice.description}</span>
-                  </Link>
+                  <Reveal delay={Math.min(i, 5) * 0.05} y={12}>
+                    <Link href={`/area-cliente/pagamentos/${invoice.id}`} className="block rounded-xl border border-border bg-card p-4 text-sm hover:bg-muted/60">
+                      <span className="font-medium">{invoice.description}</span>
+                    </Link>
+                  </Reveal>
                 </li>
               ))}
             </ul>

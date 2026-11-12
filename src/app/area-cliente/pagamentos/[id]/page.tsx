@@ -7,7 +7,9 @@ import { AutopayToggle } from '@/components/portal/autopay-widgets'
 import { InstallmentTable, InvoiceStatusBadge } from '@/components/portal/invoice-widgets'
 import { InstallmentPlanButton, PayButton } from '@/components/portal/payment-modals'
 import { PaymentProgressBar } from '@/components/portal/payment-progress'
+import { Surface } from '@/components/portal/surface'
 import { Button } from '@/components/ui/button'
+import { requireUser } from '@/lib/auth'
 import { formatDate, formatEUR, paymentTypeLabels } from '@/lib/finance/labels'
 import { getMyAutopayMandate, getMyInvoice } from '@/lib/finance/queries'
 import { paymentProgress } from '@/lib/finance/progress'
@@ -18,7 +20,8 @@ export default async function PortalInvoicePage({ params, searchParams }: { para
   const [{ id }, { pago, cancelado }] = await Promise.all([params, searchParams])
   if (!z.uuid().safeParse(id).success) notFound()
 
-  const [invoice, autopay] = await Promise.all([getMyInvoice(id), getMyAutopayMandate()])
+  const profile = await requireUser()
+  const [invoice, autopay] = await Promise.all([getMyInvoice(id, profile.id), getMyAutopayMandate()])
   if (!invoice) notFound()
 
   const canPay = invoice.status === 'pendente' || invoice.status === 'atrasado'
@@ -56,7 +59,7 @@ export default async function PortalInvoicePage({ params, searchParams }: { para
         </p>
       </header>
 
-      <section aria-label="Valores" className="grid gap-2 rounded-2xl border border-border bg-card p-6">
+      <Surface as="section" aria-label="Valores" className="grid gap-2 p-6">
         <div className="flex items-center justify-between text-sm text-muted-foreground">
           <span>Valor</span>
           <span className="tabular-nums">{formatEUR(invoice.totalAmount)}</span>
@@ -71,11 +74,11 @@ export default async function PortalInvoicePage({ params, searchParams }: { para
           <span>Total</span>
           <span className="tabular-nums">{formatEUR(invoice.finalAmount)}</span>
         </div>
-      </section>
+      </Surface>
 
-      <section aria-label="Pagamento acumulado" className="rounded-2xl border border-border bg-card p-6">
+      <Surface as="section" aria-label="Pagamento acumulado" className="p-6">
         <PaymentProgressBar progress={paymentProgress(invoice)} />
-      </section>
+      </Surface>
 
       {invoice.paymentType === 'parcelado' && (
         <section aria-labelledby="parcelas" className="grid gap-3">
@@ -87,7 +90,7 @@ export default async function PortalInvoicePage({ params, searchParams }: { para
       )}
 
       {canPay && (
-        <section aria-label="Pagar" className="grid gap-4 rounded-2xl border border-primary/30 bg-primary/5 p-5">
+        <Surface as="section" tone="primary" aria-label="Pagar" className="grid gap-4 p-5">
           <div className="flex flex-wrap items-center gap-3">
             {invoice.paymentType === 'unico' ? (
               <>
@@ -105,7 +108,7 @@ export default async function PortalInvoicePage({ params, searchParams }: { para
               <ShieldCheck className="size-4" aria-hidden /> Configurar débito automático para não ter de voltar aqui
             </Link>
           )}
-        </section>
+        </Surface>
       )}
 
       {successfulPayment && (

@@ -11,9 +11,16 @@ export async function getProjects(): Promise<PortalProject[]> {
   return (data ?? []) as PortalProject[]
 }
 
-export async function getProject(id: string): Promise<PortalProject | null> {
+/**
+ * `clientId` é opcional — defesa em profundidade por cima da RLS (que já restringe por si só). Omitir
+ * mantém o comportamento de sempre; é usado assim pelo admin (`(admin)/admin/pedidos/[id]/page.tsx`),
+ * que precisa de ver o projeto de qualquer cliente.
+ */
+export async function getProject(id: string, clientId?: string): Promise<PortalProject | null> {
   const supabase = await createClient()
-  const { data } = await supabase.from('client_projects').select('*').eq('id', id).maybeSingle()
+  let query = supabase.from('client_projects').select('*').eq('id', id)
+  if (clientId) query = query.eq('client_id', clientId)
+  const { data } = await query.maybeSingle()
   return (data as PortalProject | null) ?? null
 }
 
@@ -63,13 +70,20 @@ export async function getRequestWithMessages(id: string): Promise<{ request: Por
 
 export type InboxMessage = { read_at: string | null; broadcast: { id: string; subject: string; body: string; created_at: string } }
 
-/** Comunicados enviados pela BillTech a este cliente (a RLS limita aos seus), do mais recente ao mais antigo. */
-export async function getInbox(): Promise<InboxMessage[]> {
+/** Comunicados enviados pela BillTech a este cliente — `clientId` é defesa em profundidade por cima da RLS (que já restringe por si só). */
+export async function getInbox(clientId: string): Promise<InboxMessage[]> {
   const supabase = await createClient()
-  const { data } = await supabase.from('broadcast_recipients').select('read_at, broadcasts(id, subject, body, created_at)')
+  const { data } = await supabase.from('broadcast_recipients').select('read_at, broadcasts(id, subject, body, created_at)').eq('client_id', clientId)
   const rows = (data ?? []) as unknown as { read_at: string | null; broadcasts: InboxMessage['broadcast'] | null }[]
   return rows
     .filter((r) => r.broadcasts)
     .map((r) => ({ read_at: r.read_at, broadcast: r.broadcasts as InboxMessage['broadcast'] }))
     .sort((a, b) => b.broadcast.created_at.localeCompare(a.broadcast.created_at))
+}
+
+/** Contador de comunicados ainda não lidos — usado no dashboard (corrige o tile que antes contava pedidos não lidos) e pode substituir a mesma query repetida no layout do portal. */
+export async function getUnreadMessagesCount(clientId: string): Promise<number> {
+  const supabase = await createClient()
+  const { count } = await supabase.from('broadcast_recipients').select('broadcast_id', { count: 'exact', head: true }).eq('client_id', clientId).is('read_at', null)
+  return count ?? 0
 }

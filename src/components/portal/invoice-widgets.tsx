@@ -1,13 +1,12 @@
 import Link from 'next/link'
 import { CalendarClock } from 'lucide-react'
+import { pill } from '@/components/portal/badges'
 import { PayButton } from '@/components/portal/payment-modals'
 import { PaymentProgressBar } from '@/components/portal/payment-progress'
 import { formatDate, formatEUR, installmentStatusLabels, invoiceStatusLabels, paymentStatusLabels } from '@/lib/finance/labels'
 import { paymentProgress } from '@/lib/finance/progress'
 import { cn } from '@/lib/utils'
 import type { Installment, InstallmentStatus, InvoiceStatus, InvoiceWithDetails, PaymentStatus } from '@/types/finance'
-
-const pill = 'inline-flex items-center gap-1.5 whitespace-nowrap rounded-full px-2.5 py-0.5 text-xs font-semibold'
 
 const invoiceStatusStyles: Record<InvoiceStatus, string> = {
   pendente: 'bg-sky-500/15 text-sky-800 dark:text-sky-300',
